@@ -20,7 +20,7 @@
     </header>
 
     <main>
-      <section id="map-container" role="presentation">
+      <section id="map-container" role="application">
         <div id="map"></div>
       </section>
       <section id="filter">
@@ -28,13 +28,13 @@
           <h2>Filter Results</h2>
           <div class="select-group">
             <label for="neighborhoods-select">Choose your favorite neighborhoods</label>
-            <select id="neighborhoods-select" name="neighborhoods" onchange="updateRestaurants()">
+            <select id="neighborhoods-select" name="neighborhoods">
               <option value="all">All Neighborhoods</option>
             </select>
           </div>
           <div class="select-group">
             <label for="cuisines-select">Choose your favorite cuisines type</label>
-            <select id="cuisines-select" name="cuisines" onchange="updateRestaurants()">
+            <select id="cuisines-select" name="cuisines">
               <option value="all">All Cuisines</option>
             </select>
           </div>
@@ -48,8 +48,9 @@
     </footer>
 
     <!-- Beginning scripts -->
-    <script charset="utf-8" src="js/dbhelper.js"></script>
+    <!-- Main javascript file -->
     <script charset="utf-8" src="js/main.js"></script>
+    <!-- Google Maps API -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxgA4ORynngregy413hL73sS8UHiny9IM&libraries=places&callback=initMap"></script>
     <!-- End scripts -->
 

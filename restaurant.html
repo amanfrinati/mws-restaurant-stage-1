@@ -22,11 +22,13 @@
         </nav>
 
         <!-- Beginning breadcrumb -->
-        <ul id="breadcrumb" aria-label="Breadcrumb">
-          <li>
-            <a href="/">Home</a>
-          </li>
-        </ul>
+        <nav>
+          <ul id="breadcrumb" aria-label="Breadcrumb">
+            <li>
+              <a href="/">Home</a>
+            </li>
+          </ul>
+        </nav>
         <!-- End breadcrumb -->
 
         <!-- End nav -->
@@ -36,7 +38,7 @@
       <!-- Beginning main -->
       <main>
         <!-- Beginning map -->
-        <section id="map-container" role="presentation">
+        <section id="map-container" role="application">
           <div id="map"></div>
         </section>
         <!-- End map -->
@@ -76,11 +78,9 @@
     <!-- End footer -->
 
     <!-- Beginning scripts -->
-    <!-- Database helpers -->
-    <script src="js/dbhelper.js"></script>
     <!-- Main javascript file -->
     <script src="js/restaurant_info.js"></script>
-    <!-- Google Maps -->
+    <!-- Google Maps API -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxgA4ORynngregy413hL73sS8UHiny9IM&libraries=places&callback=initMap"></script>
     <!-- End scripts -->
 
