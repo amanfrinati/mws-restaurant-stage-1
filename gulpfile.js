@@ -13,9 +13,9 @@ var browserify = require('gulp-browserify');
 gulp.task('default', ['copy-html', 'copy-images', 'styles', 'script-main', 'script-restaurant'], function() {
   gulp.watch('sass/**/*.scss', ['styles']);
   gulp.watch('/index.html', ['copy-html']);
-  gulp.watch('js/*.js', ['js-watch']);
   gulp.watch('/restaurant.html', ['copy-html']);
-  gulp.watch('./dist/index.html').on('change', browserSync.reload);
+  gulp.watch('js/*.js', ['js-watch']);
+  gulp.watch('./dist/*.html', ['html-watch']);
 
   browserSync.init({
     server: './dist'
@@ -91,6 +91,11 @@ gulp.task('script-restaurant', function() {
 // create a task that ensures the `js` task is complete before
 // reloading browsers
 gulp.task('js-watch', ['script-main', 'script-restaurant'], function (done) {
+  browserSync.reload();
+  done();
+});
+
+gulp.task('html-watch', ['copy-html'], function (done) {
   browserSync.reload();
   done();
 });

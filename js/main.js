@@ -1,13 +1,14 @@
 'use strict';
 
 const DBHelper = require('./dbhelper');
-// var DBHelper = require('./indexdb');
+const idb = require('idb');
 
 let restaurants;
 let neighborhoods;
 let cuisines;
 let map;
 let markers = [];
+let _dbPromise;
 
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
@@ -18,6 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelector('select[name="cuisines"]').onchange = updateRestaurants;
   document.querySelector('select[name="neighborhoods"]').onchange = updateRestaurants;
+
+  _dbPromise = openDatabase();
 });
 
 /**
@@ -205,5 +208,19 @@ if (navigator.serviceWorker) {
         (err) => console.error(`ServiceWorker registration failed: ${err}`)
       )
       .catch(err => console.log(err));
+  });
+}
+
+// Index Controller
+function openDatabase() {
+  if (!navigator.serviceWorker) {
+    return Promise.resolve();
+  }
+
+  return idb.open('restaurant-review', 1, (upgradeDb) => {
+    const store = upgradeDb.createObjectStore('restaurants', {
+      keyPath: 'id'
+    });
+    store.createIndex('by-date', 'updatedAt');
   });
 }
