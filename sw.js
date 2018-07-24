@@ -1,3 +1,5 @@
+'use strict';
+
 const staticCacheName = 'restaurant-reviews-static-v9';
 const restaurantReviewsImgs = 'restaurant-reviews-imgs-v2';
 const allCaches = [
