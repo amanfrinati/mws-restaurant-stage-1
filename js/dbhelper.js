@@ -1,9 +1,46 @@
 'use strict';
 
+// const idb = require('idb');
+
+// Index Controller
+// const fetchWithIndexed = (function openDatabase() {
+//   let dbPromise;
+//   if (!navigator.serviceWorker) {
+//     return Promise.resolve();
+//   }
+
+//   if (!dbPromise) {
+//     dbPromise = idb.open('rest', 1, (upgradeDb) => {
+//       const store = upgradeDb.createObjectStore('restaurants', {
+//         keyPath: 'id'
+//       });
+//       store.createIndex('by-date', 'updatedAt');
+//     });
+//     console.log('open!!', dbPromise);
+//   }
+//   return dbPromise;
+// })();
+
+// const fetchWithIndexed = (function fetchWithIndexedFactory(){
+//   let indexedDb
+//   return async (fetchArguments) => {
+//     if (!indexedDb) {
+//       // await initialize indexedDb
+//     }
+//     // lookup indexedDb first
+//     if (notFound) {
+//       fetch(fetchArguments)
+//       indexedDb.write
+//     }
+//   }
+// })()
+
 /**
  * Common database helper functions.
  */
 class DBHelper {
+
+  constructor() { }
 
   /**
    * Database URL.
@@ -31,6 +68,25 @@ class DBHelper {
     //   }
     // };
     // xhr.send();
+
+
+
+    //   var tx = db.transaction('restaurant-review', 'readwrite');
+    //   var store = tx.objectStore('restaurant-review');
+    //   messages.forEach(function (message) {
+    //     store.put(message);
+    //   });
+
+    //   // limit store to 30 items
+    //   store.index('by-date').openCursor(null, "prev").then(function (cursor) {
+    //     return cursor.advance(30);
+    //   }).then(function deleteRest(cursor) {
+    //     if (!cursor) return;
+    //     cursor.delete();
+    //     return cursor.continue().then(deleteRest);
+    //   });
+    // });
+
 
     fetch(`${DBHelper.DATABASE_URL}/restaurants`)
       .then(res => res.json()).then(data => callback(null, data))
