@@ -10,12 +10,10 @@ var browserSync = require('browser-sync').create();
 // var gm = require('gulp-gm');
 var browserify = require('gulp-browserify');
 
-gulp.task('default', ['copy-html', 'copy-images', 'styles', 'script-main', 'script-restaurant'], function() {
+gulp.task('default', ['copy-html', 'copy-fonts', 'copy-images', 'styles', 'script-main', 'script-restaurant'], function() {
   gulp.watch('sass/**/*.scss', ['styles']);
-  gulp.watch('/index.html', ['copy-html']);
-  gulp.watch('/restaurant.html', ['copy-html']);
+  gulp.watch(['*.html', 'sw.js'], ['html-watch']);
   gulp.watch('js/*.js', ['js-watch']);
-  gulp.watch('./dist/*.html', ['html-watch']);
 
   browserSync.init({
     server: './dist'
@@ -29,14 +27,26 @@ gulp.task('default', ['copy-html', 'copy-images', 'styles', 'script-main', 'scri
 gulp.task('copy-html', () => {
   gulp.src([
     '*.html',
-    'sw.js'
+    'sw.js',
+    'manifest.json'
   ])
     .pipe(gulp.dest('./dist'));
 });
 
 gulp.task('copy-images', () => {
-  gulp.src('images/*')
+  gulp.src([
+    'images/*',
+
+  ])
     .pipe(gulp.dest('dist/images'));
+});
+
+gulp.task('copy-fonts', () => {
+  gulp.src([
+    'fonts/*',
+
+  ])
+    .pipe(gulp.dest('dist/fonts'));
 });
 
 // gulp.task('resize-images', () => {
