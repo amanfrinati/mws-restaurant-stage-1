@@ -16,6 +16,8 @@ self.addEventListener('install', event =>
         'js/main.js',
         'js/restaurant_info.js',
         'css/styles.css',
+        'fonts/roboto-v18-latin-regular.woff',
+        'fonts/roboto-v18-latin-700.woff'
       ]);
     })
   )
