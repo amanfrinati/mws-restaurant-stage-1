@@ -1,16 +1,12 @@
 'use strict';
 
 const DBHelper = require('./dbhelper');
-// let dbHelper;
-// const idb = require('idb');
 
 let restaurants;
 let neighborhoods;
 let cuisines;
 let map;
 let markers = [];
-let _dbPromise;
-
 
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
@@ -155,6 +151,7 @@ function createRestaurantHTML(restaurant) {
   image.className = 'restaurant-img';
   image.src = DBHelper.imageUrlForRestaurant(restaurant);
   image.srcset = DBHelper.imageSrcsetForRestaurant(restaurant);
+  image.sizes = '(min-width: 650px) 270px, calc(100vw - 20px)';
   image.alt = `${restaurant.name} ${restaurant.cuisine_type} restaurant`;
   li.append(image);
 

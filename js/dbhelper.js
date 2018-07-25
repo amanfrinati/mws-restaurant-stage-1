@@ -1,9 +1,10 @@
 'use strict';
 
 const idb = require('idb');
-// const test = require('./idb-test');
 
-// Index Controller
+/**
+ * Open a connection to the IndexedDb and create relative index
+ */
 function openDatabase() {
   if (!navigator.serviceWorker) {
     return Promise.resolve();
@@ -24,8 +25,12 @@ const _dbPromise = openDatabase();
  */
 class DBHelper {
 
-  constructor() { }
-
+  /**
+   * The function puts the data received as param to the IndexedDb.
+   * Data need be an Array
+   *
+   * @param {Array(any)} data
+   */
   static fillDb(data) {
     return _dbPromise.then(function (db) {
       if (!db) return;
@@ -62,9 +67,9 @@ class DBHelper {
       if (data && data.length > 0) {
         callback(null, data);
       } else {
-        fetch(`${DBHelper.DATABASE_URL}`)
+        fetch(`${DBHelper.DATABASE_URL}`) // Open the database
           .then(res => res.json())
-          .then(data => DBHelper.fillDb(data))
+          .then(data => DBHelper.fillDb(data)) //Fill the DB
           .then(DBHelper.fetchRestaurants(callback))
           .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
       }
@@ -213,13 +218,6 @@ class DBHelper {
     return (`/images/${filename}-320_small.${extension || 'jpg'} 320w,
              /images/${filename}-640_medium.${extension || 'jpg'} 640w,
              /images/${filename}-800_large.${extension || 'jpg'} 800w`);
-  }
-
-  /**
-   * Restaurant image sizes.
-   */
-  static imageSizesForRestaurant() {
-    return '(min-width: 650px) calc(50vw - 60px), calc(100vw - 20px)';
   }
 
   /**
