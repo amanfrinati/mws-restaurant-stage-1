@@ -2,8 +2,7 @@
 
 const DBHelper = require('./dbhelper');
 // let dbHelper;
-const idb = require('idb');
-const fdfs = require('./idb-test');
+// const idb = require('idb');
 
 let restaurants;
 let neighborhoods;
@@ -12,43 +11,16 @@ let map;
 let markers = [];
 let _dbPromise;
 
-function openDatabase() {
-  if (!navigator.serviceWorker) {
-    return Promise.resolve();
-  }
-
-  return idb.open('restaurant-reviews', 1, (upgradeDb) => {
-    const store = upgradeDb.createObjectStore('restaurants', {
-      keyPath: 'id'
-    });
-    store.createIndex('by-date', 'updatedAt');
-  });
-}
-_dbPromise = openDatabase();
 
 /**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
 document.addEventListener('DOMContentLoaded', () => {
-  // dbHelper = new DBHelper();
-
-  // fetchNeighborhoods();
-  // fetchCuisines();
+  fetchNeighborhoods();
+  fetchCuisines();
 
   document.querySelector('select[name="cuisines"]').onchange = updateRestaurants;
   document.querySelector('select[name="neighborhoods"]').onchange = updateRestaurants;
-
-  _dbPromise.then((db) => {
-    if (!db) return;
-
-    console.log('sssksksks', db);
-
-    const tx = db.transaction('restaurants', 'readwrite');
-    const restaurantsStore = tx.objectStore('restaurants');
-    restaurantsStore.put({ id: 432, amsa: 'ciccio' });
-
-    return tx.complete;
-  }).then(() => console.log('All ok!'));
 });
 
 /**

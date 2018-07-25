@@ -1,39 +1,23 @@
 'use strict';
 
-// const idb = require('idb');
+const idb = require('idb');
+// const test = require('./idb-test');
 
 // Index Controller
-// const fetchWithIndexed = (function openDatabase() {
-//   let dbPromise;
-//   if (!navigator.serviceWorker) {
-//     return Promise.resolve();
-//   }
+function openDatabase() {
+  if (!navigator.serviceWorker) {
+    return Promise.resolve();
+  }
 
-//   if (!dbPromise) {
-//     dbPromise = idb.open('rest', 1, (upgradeDb) => {
-//       const store = upgradeDb.createObjectStore('restaurants', {
-//         keyPath: 'id'
-//       });
-//       store.createIndex('by-date', 'updatedAt');
-//     });
-//     console.log('open!!', dbPromise);
-//   }
-//   return dbPromise;
-// })();
-
-// const fetchWithIndexed = (function fetchWithIndexedFactory(){
-//   let indexedDb
-//   return async (fetchArguments) => {
-//     if (!indexedDb) {
-//       // await initialize indexedDb
-//     }
-//     // lookup indexedDb first
-//     if (notFound) {
-//       fetch(fetchArguments)
-//       indexedDb.write
-//     }
-//   }
-// })()
+  return idb.open('restaurant-reviews', 1, (upgradeDb) => {
+    const store = upgradeDb.createObjectStore('restaurants', {
+      keyPath: 'id'
+    });
+    store.createIndex('cuisine', 'cuisine_type');
+    store.createIndex('neighborhood', 'neighborhood');
+  });
+}
+const _dbPromise = openDatabase();
 
 /**
  * Common database helper functions.
@@ -42,110 +26,109 @@ class DBHelper {
 
   constructor() { }
 
+  static fillDb(data) {
+    return _dbPromise.then(function (db) {
+      if (!db) return;
+
+      var tx = db.transaction('restaurants', 'readwrite');
+      var store = tx.objectStore('restaurants');
+      data.forEach((entry) => store.put(entry));
+      return tx.complete;
+    });
+  }
+
   /**
    * Database URL.
    * Change this to restaurants.json file location on your server.
    */
   static get DATABASE_URL() {
     const port = 1337; // Change this to your server port
-    return `http://localhost:${port}`;
+    return `http://localhost:${port}/restaurants`;
   }
 
   /**
    * Fetch all restaurants.
    */
   static fetchRestaurants(callback) {
-    // let xhr = new XMLHttpRequest();
-    // xhr.open('GET', DBHelper.DATABASE_URL);
-    // xhr.onload = () => {
-    //   if (xhr.status === 200) { // Got a success response from server!
-    //     const json = JSON.parse(xhr.responseText);
-    //     const restaurants = json.restaurants;
-    //     callback(null, restaurants);
-    //   } else { // Oops!. Got an error from server.
-    //     const error = (`Request failed. Returned status of ${xhr.status}`);
-    //     callback(error, null);
-    //   }
-    // };
-    // xhr.send();
 
+    _dbPromise.then((db) => {
+      if (!db) return;
 
+      const tx = db.transaction('restaurants');
+      const restaurantsStore = tx.objectStore('restaurants');
+      return restaurantsStore.getAll();
 
-    //   var tx = db.transaction('restaurant-review', 'readwrite');
-    //   var store = tx.objectStore('restaurant-review');
-    //   messages.forEach(function (message) {
-    //     store.put(message);
-    //   });
-
-    //   // limit store to 30 items
-    //   store.index('by-date').openCursor(null, "prev").then(function (cursor) {
-    //     return cursor.advance(30);
-    //   }).then(function deleteRest(cursor) {
-    //     if (!cursor) return;
-    //     cursor.delete();
-    //     return cursor.continue().then(deleteRest);
-    //   });
-    // });
-
-
-    fetch(`${DBHelper.DATABASE_URL}/restaurants`)
-      .then(res => res.json()).then(data => callback(null, data))
-      .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
+    }).then((data) => {
+      if (data && data.length > 0) {
+        callback(null, data);
+      } else {
+        fetch(`${DBHelper.DATABASE_URL}`)
+          .then(res => res.json())
+          .then(data => DBHelper.fillDb(data))
+          .then(DBHelper.fetchRestaurants(callback))
+          .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
+      }
+    });
   }
 
   /**
    * Fetch a restaurant by its ID.
    */
   static fetchRestaurantById(id, callback) {
-    // fetch all restaurants with proper error handling.
-    // DBHelper.fetchRestaurants((error, restaurants) => {
-    //   if (error) {
-    //     callback(error, null);
-    //   } else {
-    //     const restaurant = restaurants.find(r => r.id == id);
-    //     if (restaurant) { // Got the restaurant
-    //       callback(null, restaurant);
-    //     } else { // Restaurant does not exist in the database
-    //       callback('Restaurant does not exist', null);
-    //     }
-    //   }
-    // });
 
-    fetch(`${DBHelper.DATABASE_URL}/restaurants/${id}`)
-      .then(res => res.json()).then(data => callback(null, data))
-      .catch(err => callback(`Restaurant does not exist (${err})`, null));
+    _dbPromise.then((db) => {
+      if (!db) return;
+
+      const tx = db.transaction('restaurants');
+      const restaurantsStore = tx.objectStore('restaurants');
+      return restaurantsStore.get(+id);
+    }).then((data) => {
+      if (data) {
+        callback(null, data);
+      } else {
+        fetch(`${DBHelper.DATABASE_URL}/${id}`)
+          .then(res => res.json())
+          .then(data => DBHelper.fillDb([data]))
+          .then(DBHelper.fetchRestaurantById(id, callback))
+          .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
+      }
+    });
   }
 
   /**
    * Fetch restaurants by a cuisine type with proper error handling.
+   * @returns array of restaurants with cuisine === `cuisine`
    */
   static fetchRestaurantByCuisine(cuisine, callback) {
-    // Fetch all restaurants  with proper error handling
-    DBHelper.fetchRestaurants((error, restaurants) => {
-      if (error) {
-        callback(error, null);
-      } else {
-        // Filter restaurants to have only given cuisine type
-        const results = restaurants.filter(r => r.cuisine_type == cuisine);
-        callback(null, results);
-      }
-    });
+    // Fetch all restaurants with proper error handling
+    _dbPromise.then((db) => {
+      if (!db) return;
+
+      const tx = db.transaction('restaurants');
+      const restaurantsStore = tx.objectStore('restaurants');
+      const cuisineIndex = restaurantsStore.index('cuisine');
+      return cuisineIndex.getAll(cuisine);
+
+    }).then(data => callback(null, data))
+      .catch(err => callback(err, null));
   }
 
   /**
    * Fetch restaurants by a neighborhood with proper error handling.
+   * @returns array of restaurants with neighborhood === `neighborhood`
    */
   static fetchRestaurantByNeighborhood(neighborhood, callback) {
     // Fetch all restaurants
-    DBHelper.fetchRestaurants((error, restaurants) => {
-      if (error) {
-        callback(error, null);
-      } else {
-        // Filter restaurants to have only given neighborhood
-        const results = restaurants.filter(r => r.neighborhood == neighborhood);
-        callback(null, results);
-      }
-    });
+    _dbPromise.then((db) => {
+      if (!db) return;
+
+      const tx = db.transaction('restaurants');
+      const restaurantsStore = tx.objectStore('restaurants');
+      const neighborhoodIndex = restaurantsStore.index('neighborhood');
+      return neighborhoodIndex.getAll(neighborhood);
+
+    }).then(data => callback(null, data))
+      .catch(err => callback(err, null));
   }
 
   /**
