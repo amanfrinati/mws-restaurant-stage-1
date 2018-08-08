@@ -149,8 +149,6 @@ function fillRestaurantsHTML(restaurants = self.restaurants) {
   addMarkersToMap();
 }
 
-
-
 /**
  * Create restaurant HTML.
  */
