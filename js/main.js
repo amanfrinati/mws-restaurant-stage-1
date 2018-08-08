@@ -122,6 +122,9 @@ function resetRestaurants(restaurants) {
   const ul = document.getElementById('restaurants-list');
   ul.innerHTML = '';
 
+  // Hide message alert
+  document.getElementById('no-restaurants-alert').classList.add('hidden');
+
   // Remove all map markers
   if (self.markers) {
     self.markers.forEach(marker => marker.setMap(null));
@@ -135,11 +138,18 @@ function resetRestaurants(restaurants) {
  */
 function fillRestaurantsHTML(restaurants = self.restaurants) {
   const ul = document.getElementById('restaurants-list');
-  restaurants.forEach(restaurant => {
-    ul.append(createRestaurantHTML(restaurant));
-  });
+  if (restaurants.length) {
+    restaurants.forEach(restaurant => {
+      ul.append(createRestaurantHTML(restaurant));
+    });
+  } else {
+    // Show message alert
+    document.getElementById('no-restaurants-alert').classList.remove('hidden');
+  }
   addMarkersToMap();
 }
+
+
 
 /**
  * Create restaurant HTML.

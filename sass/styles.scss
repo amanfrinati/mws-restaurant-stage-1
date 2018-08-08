@@ -98,6 +98,25 @@ img {
 	max-width: 100%
 }
 
+/* ====================== General pourpose ====================== */
+.hidden {
+  display: none;
+}
+
+.alert {
+  font-size: 1.3rem;
+  padding: 20px;
+  margin: 20px;
+  border: 0.1rem solid;
+  border-radius: 5px;
+}
+
+.alert-danger {
+  background-color: rgba(255, 153, 36, 0.42);
+  border-color: #ff9924;
+  color: #000;
+}
+
 /* ====================== Navigation ====================== */
 nav {
   width: 100%;
@@ -214,11 +233,11 @@ nav {
   background-color: #f3f3f3;
   list-style: outside none none;
   margin: 0;
-  padding: 30px 15px 60px;
+  padding: 15px 15px 30px;
   text-align: center;
   display: flex;
   flex-flow: row wrap;
-  justify-content: space-between;
+  justify-content: space-around;
 
   li {
     background-color: #fff;
