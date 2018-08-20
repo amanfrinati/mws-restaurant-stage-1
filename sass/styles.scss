@@ -79,6 +79,7 @@ section {
 main {
   background-color: #f3f3f3;
   min-height: 100%;
+  width: 100%;
   display: flex;
   flex-wrap: wrap;
 }
@@ -96,6 +97,19 @@ footer {
 
 img {
 	max-width: 100%
+}
+
+label {
+  display: block;
+}
+
+input,
+textarea,
+select {
+    margin: .5rem 0;
+    padding: .5rem;
+    border-radius: 4px;
+    border: 1px solid #ddd;
 }
 
 /* ====================== General pourpose ====================== */
@@ -228,6 +242,18 @@ nav {
   color: #fff;
 }
 
+.thumbnails-title {
+  h3 {
+    display: inline;
+  }
+
+  i {
+    color: #b36000;
+    padding: 1rem 0.5rem 1rem 0;
+    font-size: 1.5rem;
+  }
+}
+
 /* ====================== Restaurant Listing ====================== */
 #restaurants-list {
   background-color: #f3f3f3;
@@ -339,13 +365,15 @@ nav {
 }
 
 #restaurant-container,
-#reviews-container {
+#reviews-container,
+#add-review-container {
   border-bottom: 1px solid #d9d9d9;
   border-top: 1px solid #fff;
   padding: 30px 0 30px;
 }
 
-#reviews-container {
+#reviews-container,
+#add-review-container {
   padding: 30px;
 
   h3 {
@@ -443,6 +471,15 @@ nav {
 .comment-body {
   padding: 0 20px 20px;
   color: #595959;
+}
+
+/* ====================== Add Review ====================== */
+
+#add-review-container {
+  label {
+    font-size: 1.2rem;
+    margin: 1rem 0 0;
+  }
 }
 
 /* ====================== Responsiveness ====================== */

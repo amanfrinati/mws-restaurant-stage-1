@@ -5,6 +5,17 @@ const DBHelper = require('./dbhelper');
 let restaurant;
 let map;
 
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('#add-new-review').addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const reviewer_name = document.querySelector('#name');
+    const comment_text = document.querySelector('#comment');
+    const rating = document.querySelector('#rating');
+    addNewReview(reviewer_name, comment_text, rating);
+  });
+});
+
 /**
  * Initialize Google map, called from HTML.
  */
@@ -101,6 +112,7 @@ function fillRestaurantHoursHTML(operatingHours = self.restaurant.operating_hour
  */
 function fillReviewsHTML(reviews = self.restaurant.reviews) {
   const container = document.getElementById('reviews-details');
+
   const title = document.createElement('h3');
   title.innerHTML = 'Reviews';
   container.appendChild(title);
@@ -188,4 +200,25 @@ function getParameterByName(name, url) {
   if (!results[2])
     return '';
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
+/**
+ * Add new review
+ */
+function addNewReview(reviewer_name, comment_text, rating) {
+  fetch(`${DBHelper.BASE_URL}/reviews/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+    },
+    mode: 'cors',
+    body: {
+      'restaurant_id': self.restaurant.id,
+      'name': reviewer_name,
+      'rating': rating,
+      'comments': comment_text
+    }
+  })
+    .then(res => res.json())
+    .then(data => console.log(data));
 }

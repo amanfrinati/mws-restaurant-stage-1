@@ -3,42 +3,24 @@
 const idb = require('idb');
 
 /**
- * Open a connection to the IndexedDb and create relative index
- */
-function openDatabase() {
-  if (!navigator.serviceWorker) {
-    return Promise.resolve();
-  }
-
-  return idb.open('restaurant-reviews', 1, (upgradeDb) => {
-    const store = upgradeDb.createObjectStore('restaurants', {
-      keyPath: 'id'
-    });
-    store.createIndex('cuisine', 'cuisine_type');
-    store.createIndex('neighborhood', 'neighborhood');
-  });
-}
-const _dbPromise = openDatabase();
-
-/**
  * Common database helper functions.
  */
 class DBHelper {
 
   /**
-   * The function puts the data received as param to the IndexedDb.
-   * Data need be an Array
-   *
-   * @param {Array(any)} data
+   * Open a connection to the IndexedDb and create relative index
    */
-  static fillDb(data) {
-    return _dbPromise.then(function (db) {
-      if (!db) return;
+  static dbPromise() {
+    if (!navigator.serviceWorker) {
+      return Promise.resolve();
+    }
 
-      var tx = db.transaction('restaurants', 'readwrite');
-      var store = tx.objectStore('restaurants');
-      data.forEach((entry) => store.put(entry));
-      return tx.complete;
+    return idb.open('restaurant-reviews', 1, (upgradeDb) => {
+      const store = upgradeDb.createObjectStore('restaurants', {
+        keyPath: 'id'
+      });
+      store.createIndex('cuisine', 'cuisine_type');
+      store.createIndex('neighborhood', 'neighborhood');
     });
   }
 
@@ -46,42 +28,56 @@ class DBHelper {
    * Database URL.
    * Change this to restaurants.json file location on your server.
    */
-  static get DATABASE_URL() {
+  static get BASE_URL() {
     const port = 1337; // Change this to your server port
-    return `http://localhost:${port}/restaurants`;
+    return `http://localhost:${port}`;
+  }
+
+  static fetchAndCacheRestaurants(id) {
+    const URL = `${DBHelper.BASE_URL}/restaurants/${id ? id : ''}`;
+
+    return fetch(URL)
+      .then(res => res.json())
+      .then(async restaurants => {
+        const db = await DBHelper.dbPromise();
+        const tx = db.transaction('restaurants', 'readwrite');
+        const store = tx.objectStore('restaurants');
+        // restaurants.forEach(store.put.bind(store));
+        restaurants.forEach((entry) => store.put(entry));
+        await tx.complete;
+        return restaurants;
+      })
+      .catch(err => console.error(`Oh no! Somethind went wrong! ${err}`, null));
   }
 
   /**
    * Fetch all restaurants.
    */
   static fetchRestaurants(callback) {
+    DBHelper.dbPromise()
+      .then((db) => {
+        if (!db) return;
 
-    _dbPromise.then((db) => {
-      if (!db) return;
-
-      const tx = db.transaction('restaurants');
-      const restaurantsStore = tx.objectStore('restaurants');
-      return restaurantsStore.getAll();
-
-    }).then((data) => {
-      if (data && data.length > 0) {
-        callback(null, data);
-      } else {
-        fetch(`${DBHelper.DATABASE_URL}`) // Open the database
-          .then(res => res.json())
-          .then(data => DBHelper.fillDb(data)) //Fill the DB
-          .then(DBHelper.fetchRestaurants(callback))
-          .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
-      }
-    });
+        const tx = db.transaction('restaurants');
+        const restaurantsStore = tx.objectStore('restaurants');
+        return restaurantsStore.getAll();
+      })
+      .then((data) => {
+        if (data && data.length > 0) {
+          callback(null, data);
+        } else {
+          DBHelper.fetchAndCacheRestaurants()
+            .then(data => callback(null, data))
+            .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
+        }
+      });
   }
 
   /**
    * Fetch a restaurant by its ID.
    */
   static fetchRestaurantById(id, callback) {
-
-    _dbPromise.then((db) => {
+    DBHelper.dbPromise().then((db) => {
       if (!db) return;
 
       const tx = db.transaction('restaurants');
@@ -91,11 +87,20 @@ class DBHelper {
       if (data) {
         callback(null, data);
       } else {
-        fetch(`${DBHelper.DATABASE_URL}/${id}`)
-          .then(res => res.json())
-          .then(data => DBHelper.fillDb([data]))
-          .then(DBHelper.fetchRestaurantById(id, callback))
+        DBHelper.fetchAndCacheRestaurants(id)
+          .then(data => callback(null, data))
           .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
+        // return fetch(`${DBHelper.BASE_URL}/restaurants/${id}`)
+        //   .then(res => res.json())
+        //   .then(async restaurant => {
+        //     const db = await DBHelper.dbPromise();
+        //     const tx = db.transaction('restaurants', 'readwrite');
+        //     const store = tx.objectStore('restaurants');
+        //     store.put(restaurant);
+        //     await tx.complete;
+        //     return restaurant;
+        //   })
+        //   .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
       }
     });
   }
@@ -106,7 +111,7 @@ class DBHelper {
    */
   static fetchRestaurantByCuisine(cuisine, callback) {
     // Fetch all restaurants with proper error handling
-    _dbPromise.then((db) => {
+    DBHelper.dbPromise().then((db) => {
       if (!db) return;
 
       const tx = db.transaction('restaurants');
@@ -124,7 +129,7 @@ class DBHelper {
    */
   static fetchRestaurantByNeighborhood(neighborhood, callback) {
     // Fetch all restaurants
-    _dbPromise.then((db) => {
+    DBHelper.dbPromise().then((db) => {
       if (!db) return;
 
       const tx = db.transaction('restaurants');
@@ -231,6 +236,13 @@ class DBHelper {
       map: map,
       animation: google.maps.Animation.DROP
     });
+  }
+
+  /**
+   * @returns true if @param restaurant is favorite
+   */
+  static isFavoriteRestaurant(restaurant) {
+    return restaurant.is_favorite;
   }
 }
 

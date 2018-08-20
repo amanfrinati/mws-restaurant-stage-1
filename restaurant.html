@@ -7,6 +7,8 @@
     <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" />
     <!-- Main CSS file -->
     <link rel="stylesheet" href="css/styles.css">
+    <!-- Fontawesome icons -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
     <!-- Theme Color -->
     <meta name="theme-color" content="#4c5367" />
     <link rel="manifest" href="/manifest.json">
@@ -64,6 +66,32 @@
             </div>
           </section>
           <!-- End reviews -->
+
+          <!-- Beginning add review -->
+          <section id="add-review-container">
+            <div class="add-review">
+              <h3>Add your review</h3>
+              <form id="add-new-review" action="#">
+                <label for="name">Your name</label>
+                <input type="text" name="name" id="name">
+
+                <label for="comment">Your comment</label>
+                <textarea id="comment" name="comment" rows="3" cols="33" wrap="hard"></textarea>
+
+                <label for="rating">Your rating</label>
+                <select name="rating" id="rating">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                </select>
+
+                <button type="submit">Add your review</button>
+              </form>
+            </div>
+          </section>
+          <!-- End add review -->
 
         </div>
 

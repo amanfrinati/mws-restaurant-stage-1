@@ -163,9 +163,18 @@ function createRestaurantHTML(restaurant) {
   image.alt = `${restaurant.name} ${restaurant.cuisine_type} restaurant`;
   li.append(image);
 
+  const title = document.createElement('div');
+  title.classList.add('thumbnails-title');
+
+  const star = document.createElement('i');
+  DBHelper.isFavoriteRestaurant(restaurant) ? star.classList.add('fas') : star.classList.add('far');
+  star.classList.add('fa-star');
+  title.appendChild(star);
+
   const name = document.createElement('h3');
   name.innerHTML = restaurant.name;
-  li.append(name);
+  title.appendChild(name);
+  li.append(title);
 
   const neighborhood = document.createElement('p');
   neighborhood.innerHTML = restaurant.neighborhood;
