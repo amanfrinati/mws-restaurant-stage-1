@@ -6,13 +6,15 @@ let restaurant;
 let map;
 
 document.addEventListener('DOMContentLoaded', () => {
+  DBHelper.fetchAndCacheReviews();
+
   document.querySelector('#add-new-review').addEventListener('submit', (e) => {
     e.preventDefault();
 
     const reviewer_name = document.querySelector('#name');
     const comment_text = document.querySelector('#comment');
     const rating = document.querySelector('#rating');
-    addNewReview(reviewer_name, comment_text, rating);
+    addNewReview(reviewer_name.value, comment_text.value, rating.value);
   });
 });
 
@@ -54,7 +56,16 @@ const fetchRestaurantFromURL = (callback) => {
         return;
       }
       fillRestaurantHTML();
-      callback(null, restaurant);
+      callback(null, self.restaurant);
+    });
+
+    DBHelper.fetchReviewsByRestaurantId(id, (error, reviews) => {
+      self.restaurant.reviews = [...reviews];
+      if (!reviews) {
+        console.error(error);
+        return;
+      }
+      fillReviewsHTML();
     });
   }
 };
@@ -84,7 +95,7 @@ function fillRestaurantHTML(restaurant = self.restaurant) {
     fillRestaurantHoursHTML();
   }
   // fill reviews
-  fillReviewsHTML();
+  // fillReviewsHTML();
 }
 
 /**
@@ -210,15 +221,23 @@ function addNewReview(reviewer_name, comment_text, rating) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Methods': 'POST',
+      'Access-Control-Allow-Origin': 'http://localhost:3000'
     },
-    mode: 'cors',
-    body: {
+    body: JSON.stringify({
       'restaurant_id': self.restaurant.id,
       'name': reviewer_name,
       'rating': rating,
       'comments': comment_text
-    }
+    })
   })
-    .then(res => res.json())
+
+  // fetch(`${DBHelper.BASE_URL}/reviews/`, {
+  //   method: 'OPTIONS',
+  //   headers: {
+  //     // 'Content-Type': 'application/json; charset=utf-8',
+  //   }
+  // })
+    .then(res => res.headers)
     .then(data => console.log(data));
 }

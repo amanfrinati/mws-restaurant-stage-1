@@ -16,11 +16,16 @@ class DBHelper {
     }
 
     return idb.open('restaurant-reviews', 1, (upgradeDb) => {
-      const store = upgradeDb.createObjectStore('restaurants', {
+      let store = upgradeDb.createObjectStore('restaurants', {
         keyPath: 'id'
       });
       store.createIndex('cuisine', 'cuisine_type');
       store.createIndex('neighborhood', 'neighborhood');
+
+      store = upgradeDb.createObjectStore('reviews', {
+        keyPath: 'id'
+      });
+      store.createIndex('byRestaurant', 'restaurant_id');
     });
   }
 
@@ -46,6 +51,22 @@ class DBHelper {
         restaurants.forEach((entry) => store.put(entry));
         await tx.complete;
         return restaurants;
+      })
+      .catch(err => console.error(`Oh no! Somethind went wrong! ${err}`, null));
+  }
+
+  static fetchAndCacheReviews(id) {
+    const URL = `${DBHelper.BASE_URL}/reviews/${id ? '?restaurant_id=' + id : ''}`;
+
+    return fetch(URL)
+      .then(res => res.json())
+      .then(async reviews => {
+        const db = await DBHelper.dbPromise();
+        const tx = db.transaction('reviews', 'readwrite');
+        const store = tx.objectStore('reviews');
+        reviews.forEach((entry) => store.put(entry));
+        await tx.complete;
+        return reviews;
       })
       .catch(err => console.error(`Oh no! Somethind went wrong! ${err}`, null));
   }
@@ -90,17 +111,6 @@ class DBHelper {
         DBHelper.fetchAndCacheRestaurants(id)
           .then(data => callback(null, data))
           .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
-        // return fetch(`${DBHelper.BASE_URL}/restaurants/${id}`)
-        //   .then(res => res.json())
-        //   .then(async restaurant => {
-        //     const db = await DBHelper.dbPromise();
-        //     const tx = db.transaction('restaurants', 'readwrite');
-        //     const store = tx.objectStore('restaurants');
-        //     store.put(restaurant);
-        //     await tx.complete;
-        //     return restaurant;
-        //   })
-        //   .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
       }
     });
   }
@@ -243,6 +253,24 @@ class DBHelper {
    */
   static isFavoriteRestaurant(restaurant) {
     return restaurant.is_favorite;
+  }
+
+  static fetchReviewsByRestaurantId(id, callback) {
+    DBHelper.dbPromise().then(db => {
+      if (!db) return;
+
+      const tx = db.transaction('reviews');
+      const restaurantsStore = tx.objectStore('reviews');
+      const restaurantIndex = restaurantsStore.index('byRestaurant');
+      return restaurantIndex.getAll(id);
+    }).then(data => {
+      if (!data) {
+        DBHelper.fetchReviewsByRestaurantId(id)
+          .then(data => callback(null, data))
+          .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
+      }
+      return data;
+    });
   }
 }
 
