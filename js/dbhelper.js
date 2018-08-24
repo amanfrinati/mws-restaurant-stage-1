@@ -97,22 +97,45 @@ class DBHelper {
   /**
    * Fetch a restaurant by its ID.
    */
-  static fetchRestaurantById(id, callback) {
-    DBHelper.dbPromise().then((db) => {
-      if (!db) return;
+  static fetchRestaurantById(id) {
+    return DBHelper.dbPromise().then(db => {
+      if (!db) {
+        return Promise.reject('Database error');
+      }
 
       const tx = db.transaction('restaurants');
       const restaurantsStore = tx.objectStore('restaurants');
       return restaurantsStore.get(+id);
-    }).then((data) => {
+    }).then(data => {
       if (data) {
-        callback(null, data);
+        return Promise.resolve(data);
       } else {
         DBHelper.fetchAndCacheRestaurants(id)
-          .then(data => callback(null, data))
-          .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
+          .then(data => Promise.resolve(data))
+          .catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
       }
-    });
+    }).catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
+  }
+
+  static fetchReviewsByRestaurantId(id) {
+    return DBHelper.dbPromise().then(db => {
+      if (!db) {
+        return Promise.reject('Database error');
+      }
+
+      const tx = db.transaction('reviews');
+      const restaurantsStore = tx.objectStore('reviews');
+      const restaurantIndex = restaurantsStore.index('byRestaurant');
+      return restaurantIndex.getAll(id);
+    }).then(data => {
+      if (data) {
+        return Promise.resolve(data);
+      } else {
+        DBHelper.fetchAndCacheReviews(id)
+          .then(data => Promise.resolve(data))
+          .catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
+      }
+    }).catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
   }
 
   /**
@@ -253,24 +276,6 @@ class DBHelper {
    */
   static isFavoriteRestaurant(restaurant) {
     return restaurant.is_favorite;
-  }
-
-  static fetchReviewsByRestaurantId(id, callback) {
-    DBHelper.dbPromise().then(db => {
-      if (!db) return;
-
-      const tx = db.transaction('reviews');
-      const restaurantsStore = tx.objectStore('reviews');
-      const restaurantIndex = restaurantsStore.index('byRestaurant');
-      return restaurantIndex.getAll(id);
-    }).then(data => {
-      if (!data) {
-        DBHelper.fetchReviewsByRestaurantId(id)
-          .then(data => callback(null, data))
-          .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
-      }
-      return data;
-    });
   }
 }
 

@@ -22,53 +22,56 @@ document.addEventListener('DOMContentLoaded', () => {
  * Initialize Google map, called from HTML.
  */
 window.initMap = () => {
-  fetchRestaurantFromURL((error, restaurant) => {
-    if (error) { // Got an error!
-      console.error(error);
-    } else {
-      self.map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 16,
-        center: restaurant.latlng,
-        scrollwheel: false
-      });
-      fillBreadcrumb();
-      DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
-    }
-  });
+  fetchRestaurantFromURL.then((restaurant) => {
+    self.map = new google.maps.Map(document.getElementById('map'), {
+      zoom: 16,
+      center: restaurant.latlng,
+      scrollwheel: false
+    });
+    fillBreadcrumb();
+    DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
+  }).catch(error => console.error(error));
 };
 
 /**
  * Get current restaurant from page URL.
  */
-const fetchRestaurantFromURL = (callback) => {
+const fetchRestaurantFromURL = new Promise((resolve, reject) => {
   if (self.restaurant) { // restaurant already fetched!
-    callback(null, self.restaurant);
-    return;
+    resolve(self.restaurant);
   }
+
   const id = getParameterByName('id');
   if (!id) { // no id found in URL
-    callback('No restaurant id in URL', null);
+    reject('No restaurant id in URL');
   } else {
-    DBHelper.fetchRestaurantById(id, (error, restaurant) => {
-      self.restaurant = restaurant;
-      if (!restaurant) {
-        console.error(error);
-        return;
-      }
-      fillRestaurantHTML();
-      callback(null, self.restaurant);
-    });
+    resolve(
+      Promise.all(
+        DBHelper.fetchRestaurantById(id)
+          .then(restaurant => {
+            self.restaurant = restaurant;
+            fillRestaurantHTML();
+            return restaurant;
+          })
+          .catch(err => err),
 
-    DBHelper.fetchReviewsByRestaurantId(id, (error, reviews) => {
-      self.restaurant.reviews = [...reviews];
-      if (!reviews) {
-        console.error(error);
-        return;
-      }
-      fillReviewsHTML();
-    });
+        DBHelper.fetchReviewsByRestaurantId(id)
+          .then(reviews => {
+            console.log('reviews', reviews);
+          }).catch(err => err)
+      ).then((restaurants, reviews) => restaurants)
+    );
+
+
+
+
+    //   self.restaurant.reviews = reviews;
+    //   fillReviewsHTML();
+    //   callback(null, self.restaurant);
+    // });
+    // }
   }
-};
+});
 
 /**
  * Create restaurant HTML and add it to the webpage
@@ -184,7 +187,7 @@ function createReviewHTML(review) {
 /**
  * Add restaurant name to the breadcrumb navigation menu
  */
-function fillBreadcrumb(restaurant=self.restaurant) {
+function fillBreadcrumb(restaurant = self.restaurant) {
   const breadcrumb = document.getElementById('breadcrumb');
   const li = document.createElement('li');
 
@@ -221,8 +224,6 @@ function addNewReview(reviewer_name, comment_text, rating) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Methods': 'POST',
-      'Access-Control-Allow-Origin': 'http://localhost:3000'
     },
     body: JSON.stringify({
       'restaurant_id': self.restaurant.id,
@@ -230,14 +231,9 @@ function addNewReview(reviewer_name, comment_text, rating) {
       'rating': rating,
       'comments': comment_text
     })
-  })
-
-  // fetch(`${DBHelper.BASE_URL}/reviews/`, {
-  //   method: 'OPTIONS',
-  //   headers: {
-  //     // 'Content-Type': 'application/json; charset=utf-8',
-  //   }
-  // })
-    .then(res => res.headers)
-    .then(data => console.log(data));
+  }).then(res => {
+    if (res.ok) {
+      // reload reviews
+    }
+  }).catch(err => console.error(err));
 }

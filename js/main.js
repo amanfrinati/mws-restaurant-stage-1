@@ -210,17 +210,17 @@ function addMarkersToMap(restaurants = self.restaurants) {
 /**
  * Register the Service Worker
  */
-if (navigator.serviceWorker) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('../sw.js')
-      .then(
-        () => {
-          if (!navigator.serviceWorker.controller) {
-            return;
-          }
-        },
-        (err) => console.error(`ServiceWorker registration failed: ${err}`)
-      )
-      .catch(err => console.log(err));
-  });
-}
+// if (navigator.serviceWorker) {
+//   window.addEventListener('load', () => {
+//     navigator.serviceWorker.register('../sw.js')
+//       .then(
+//         () => {
+//           if (!navigator.serviceWorker.controller) {
+//             return;
+//           }
+//         },
+//         (err) => console.error(`ServiceWorker registration failed: ${err}`)
+//       )
+//       .catch(err => console.log(err));
+//   });
+// }
