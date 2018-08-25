@@ -38,16 +38,17 @@ class DBHelper {
     return `http://localhost:${port}`;
   }
 
+  /**
+   * Fetch restaurant info from the server and cache on the DB
+   * @param {*} id of restaurant to fetch
+   */
   static fetchAndCacheRestaurants(id) {
-    const URL = `${DBHelper.BASE_URL}/restaurants/${id ? id : ''}`;
-
-    return fetch(URL)
+    return fetch(`${DBHelper.BASE_URL}/restaurants/${id ? id : ''}`)
       .then(res => res.json())
       .then(async restaurants => {
         const db = await DBHelper.dbPromise();
         const tx = db.transaction('restaurants', 'readwrite');
         const store = tx.objectStore('restaurants');
-        // restaurants.forEach(store.put.bind(store));
         restaurants.forEach((entry) => store.put(entry));
         await tx.complete;
         return restaurants;
@@ -56,9 +57,7 @@ class DBHelper {
   }
 
   static fetchAndCacheReviews(id) {
-    const URL = `${DBHelper.BASE_URL}/reviews/${id ? '?restaurant_id=' + id : ''}`;
-
-    return fetch(URL)
+    return fetch(`${DBHelper.BASE_URL}/reviews/${id ? '?restaurant_id=' + id : ''}`)
       .then(res => res.json())
       .then(async reviews => {
         const db = await DBHelper.dbPromise();
@@ -74,24 +73,24 @@ class DBHelper {
   /**
    * Fetch all restaurants.
    */
-  static fetchRestaurants(callback) {
-    DBHelper.dbPromise()
-      .then((db) => {
-        if (!db) return;
-
-        const tx = db.transaction('restaurants');
-        const restaurantsStore = tx.objectStore('restaurants');
-        return restaurantsStore.getAll();
-      })
-      .then((data) => {
-        if (data && data.length > 0) {
-          callback(null, data);
-        } else {
-          DBHelper.fetchAndCacheRestaurants()
-            .then(data => callback(null, data))
-            .catch(err => callback(`Oh no! Somethind went wrong! ${err}`, null));
+  static fetchRestaurants() {
+    return DBHelper.dbPromise()
+      .then(db => {
+        if (!db) {
+          return Promise.reject('An error occours while opening DB!');
         }
-      });
+        return db.transaction('restaurants')
+          .objectStore('restaurants').getAll();
+      })
+      .then(data => {
+        if (data && data.length > 0) {
+          return Promise.resolve(data);
+        } else {
+          return DBHelper.fetchAndCacheRestaurants()
+            .then(data => Promise.resolve(data))
+            .catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
+        }
+      }).catch(err => console.error(err));
   }
 
   /**
@@ -112,9 +111,9 @@ class DBHelper {
       } else {
         DBHelper.fetchAndCacheRestaurants(id)
           .then(data => Promise.resolve(data))
-          .catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
+          .catch(err => Promise.reject(`Oh no! An error occours fetching restaurant with ID ${id}. ${err}`));
       }
-    }).catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
+    }).catch(err => Promise.reject(`Oh no! Somethings went wrong! ${err}`));
   }
 
   static fetchReviewsByRestaurantId(id) {
@@ -133,9 +132,9 @@ class DBHelper {
       } else {
         DBHelper.fetchAndCacheReviews(id)
           .then(data => Promise.resolve(data))
-          .catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
+          .catch(err => Promise.reject(`Oh no! Somethings went wrong! ${err}`));
       }
-    }).catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
+    }).catch(err => Promise.reject(`Oh no! Somethings went wrong! ${err}`));
   }
 
   /**
@@ -179,10 +178,8 @@ class DBHelper {
    */
   static fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, callback) {
     // Fetch all restaurants
-    DBHelper.fetchRestaurants((error, restaurants) => {
-      if (error) {
-        callback(error, null);
-      } else {
+    DBHelper.fetchRestaurants()
+      .then(restaurants => {
         let results = restaurants;
         if (cuisine != 'all') { // filter by cuisine
           results = results.filter(r => r.cuisine_type == cuisine);
@@ -191,8 +188,7 @@ class DBHelper {
           results = results.filter(r => r.neighborhood == neighborhood);
         }
         callback(null, results);
-      }
-    });
+      }).catch(error => callback(error, null))
   }
 
   /**
@@ -200,17 +196,14 @@ class DBHelper {
    */
   static fetchNeighborhoods(callback) {
     // Fetch all restaurants
-    DBHelper.fetchRestaurants((error, restaurants) => {
-      if (error) {
-        callback(error, null);
-      } else {
+    DBHelper.fetchRestaurants()
+      .then(restaurants => {
         // Get all neighborhoods from all restaurants
         const neighborhoods = restaurants.map((v, i) => restaurants[i].neighborhood);
         // Remove duplicates from neighborhoods
         const uniqueNeighborhoods = neighborhoods.filter((v, i) => neighborhoods.indexOf(v) == i);
         callback(null, uniqueNeighborhoods);
-      }
-    });
+      }).catch(error => callback(error, null));
   }
 
   /**
@@ -218,17 +211,14 @@ class DBHelper {
    */
   static fetchCuisines(callback) {
     // Fetch all restaurants
-    DBHelper.fetchRestaurants((error, restaurants) => {
-      if (error) {
-        callback(error, null);
-      } else {
+    DBHelper.fetchRestaurants()
+      .then(restaurants => {
         // Get all cuisines from all restaurants
         const cuisines = restaurants.map((v, i) => restaurants[i].cuisine_type);
         // Remove duplicates from cuisines
         const uniqueCuisines = cuisines.filter((v, i) => cuisines.indexOf(v) == i);
         callback(null, uniqueCuisines);
-      }
-    });
+      }).catch(error => callback(error, null));
   }
 
   /**
@@ -276,6 +266,25 @@ class DBHelper {
    */
   static isFavoriteRestaurant(restaurant) {
     return restaurant.is_favorite;
+  }
+
+  static addReview(review) {
+    /* {
+      'restaurant_id': self.restaurant.id,
+      'name': reviewer_name,
+      'rating': rating,
+      'comments': comment_text
+    } */
+
+    DBHelper.dbPromise().then(db => {
+      if (!db) {
+        return Promise.reject('Database error');
+      }
+
+      const tx = db.transaction('reviews', 'readwrite');
+      const restaurantsStore = tx.objectStore('reviews');
+      return restaurantsStore.get(+id);
+    })
   }
 }
 

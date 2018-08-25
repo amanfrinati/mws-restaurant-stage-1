@@ -23,12 +23,15 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 window.initMap = () => {
   fetchRestaurantFromURL.then((restaurant) => {
+    fillRestaurantHTML();
+    fillReviewsHTML();
+    fillBreadcrumb();
+
     self.map = new google.maps.Map(document.getElementById('map'), {
       zoom: 16,
       center: restaurant.latlng,
       scrollwheel: false
     });
-    fillBreadcrumb();
     DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
   }).catch(error => console.error(error));
 };
@@ -42,34 +45,22 @@ const fetchRestaurantFromURL = new Promise((resolve, reject) => {
   }
 
   const id = getParameterByName('id');
-  if (!id) { // no id found in URL
-    reject('No restaurant id in URL');
+  if (!id) {
+    // no id found in URL
+    reject('No restaurant ID in URL');
+
   } else {
     resolve(
-      Promise.all(
-        DBHelper.fetchRestaurantById(id)
-          .then(restaurant => {
-            self.restaurant = restaurant;
-            fillRestaurantHTML();
-            return restaurant;
-          })
-          .catch(err => err),
-
-        DBHelper.fetchReviewsByRestaurantId(id)
-          .then(reviews => {
-            console.log('reviews', reviews);
-          }).catch(err => err)
-      ).then((restaurants, reviews) => restaurants)
+      DBHelper.fetchRestaurantById(id)
+        .then(restaurant => {
+          self.restaurant = restaurant;
+          return DBHelper.fetchReviewsByRestaurantId(restaurant.id)
+            .then(reviews => {
+              self.restaurant.reviews = reviews;
+              return self.restaurant;
+            });
+        }).catch(err => err)
     );
-
-
-
-
-    //   self.restaurant.reviews = reviews;
-    //   fillReviewsHTML();
-    //   callback(null, self.restaurant);
-    // });
-    // }
   }
 });
 
@@ -97,6 +88,7 @@ function fillRestaurantHTML(restaurant = self.restaurant) {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
+
   // fill reviews
   // fillReviewsHTML();
 }
@@ -127,21 +119,27 @@ function fillRestaurantHoursHTML(operatingHours = self.restaurant.operating_hour
 function fillReviewsHTML(reviews = self.restaurant.reviews) {
   const container = document.getElementById('reviews-details');
 
-  const title = document.createElement('h3');
-  title.innerHTML = 'Reviews';
-  container.appendChild(title);
+  const noReviews = document.createElement('p');
+  noReviews.id = 'no-reviews-message';
+  noReviews.innerHTML = 'No reviews yet!';
+  noReviews.classList.add('hidden');
+  container.appendChild(noReviews);
 
-  if (!reviews) {
-    const noReviews = document.createElement('p');
-    noReviews.innerHTML = 'No reviews yet!';
-    container.appendChild(noReviews);
-    return;
-  }
+  populateReviews(reviews);
+}
+
+function populateReviews(reviews = []) {
+  const noReviews = document.getElementById('no-reviews-message');
+  reviews.length ? noReviews.classList.add('hidden') : noReviews.classList.remove('hidden');
+
   const ul = document.getElementById('reviews-list');
-  reviews.forEach(review => {
-    ul.appendChild(createReviewHTML(review));
-  });
-  container.appendChild(ul);
+  while (ul.firstChild) {
+    ul.removeChild(ul.firstChild);
+  }
+
+  reviews.forEach(review =>
+    ul.appendChild(createReviewHTML(review))
+  );
 }
 
 /**
@@ -160,7 +158,7 @@ function createReviewHTML(review) {
 
   const date = document.createElement('span');
   date.classList.add('comment-date');
-  date.innerHTML = review.date;
+  date.innerHTML = (new Date(review.createdAt)).toLocaleString();
   div.appendChild(date);
 
   li.appendChild(div);
@@ -204,15 +202,21 @@ function fillBreadcrumb(restaurant = self.restaurant) {
  * Get a parameter by name from page URL.
  */
 function getParameterByName(name, url) {
-  if (!url)
+  if (!url) {
     url = window.location.href;
+  }
   name = name.replace(/[\[\]]/g, '\\$&');
-  const regex = new RegExp(`[?&]${name}(=([^&#]*)|&|#|$)`),
-    results = regex.exec(url);
-  if (!results)
+  const regex = new RegExp(`[?&]${name}(=([^&#]*)|&|#|$)`);
+
+  const results = regex.exec(url);
+  if (!results) {
     return null;
-  if (!results[2])
+  }
+
+  if (!results[2]) {
     return '';
+  }
+
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
@@ -233,7 +237,11 @@ function addNewReview(reviewer_name, comment_text, rating) {
     })
   }).then(res => {
     if (res.ok) {
-      // reload reviews
+      DBHelper.fetchAndCacheReviews(self.restaurant.id)
+        .then(reviews => {
+          self.restaurant.reviews = reviews;
+          populateReviews(reviews);
+        });
     }
   }).catch(err => console.error(err));
 }
