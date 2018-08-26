@@ -26,6 +26,11 @@ class DBHelper {
         keyPath: 'id'
       });
       store.createIndex('byRestaurant', 'restaurant_id');
+
+      store = upgradeDb.createObjectStore('reviews-misaligned', {
+        keyPath: 'id'
+      });
+      store.createIndex('byRestaurant', 'restaurant_id');
     });
   }
 
@@ -57,17 +62,35 @@ class DBHelper {
   }
 
   static fetchAndCacheReviews(id) {
-    return fetch(`${DBHelper.BASE_URL}/reviews/${id ? '?restaurant_id=' + id : ''}`)
-      .then(res => res.json())
-      .then(async reviews => {
-        const db = await DBHelper.dbPromise();
-        const tx = db.transaction('reviews', 'readwrite');
-        const store = tx.objectStore('reviews');
-        reviews.forEach((entry) => store.put(entry));
-        await tx.complete;
-        return reviews;
-      })
-      .catch(err => console.error(`Oh no! Somethind went wrong! ${err}`, null));
+    return this.dbPromise().then(db => {
+      if (!db) return;
+
+      const tx = db.transaction('reviews-misaligned');
+      return tx.objectStore('reviews-misaligned').openCursor();
+    }).then(function fetchReview(cursor) {
+      if(!cursor) return;
+      console.log("Cursored at:", cursor.value);
+      // I could also do things like:
+      // cursor.update(newValue) to change the value, or
+      // cursor.delete() to delete this entry
+      return cursor.continue().then(fetchReview);
+
+    }).then(() => {
+      return fetch(`${DBHelper.BASE_URL}/reviews/${id ? '?restaurant_id=' + id : ''}`)
+        .then(res => res.json())
+        .then(async reviews => {
+          console.log('via di cache');
+
+          const db = await DBHelper.dbPromise();
+          const tx = db.transaction('reviews', 'readwrite');
+          const store = tx.objectStore('reviews');
+          reviews.forEach(entry => store.put(entry));
+          await tx.complete;
+          console.log('reviews', reviews);
+          return reviews;
+        })
+        .catch(err => console.error(`Oh no! Somethind went wrong! ${err}`, null));
+    });
   }
 
   /**
@@ -116,24 +139,16 @@ class DBHelper {
     }).catch(err => Promise.reject(`Oh no! Somethings went wrong! ${err}`));
   }
 
-  static fetchReviewsByRestaurantId(id) {
+  static async fetchReviewsByRestaurantId(id) {
+    await DBHelper.fetchAndCacheReviews(id);
     return DBHelper.dbPromise().then(db => {
       if (!db) {
         return Promise.reject('Database error');
       }
 
-      const tx = db.transaction('reviews');
-      const restaurantsStore = tx.objectStore('reviews');
-      const restaurantIndex = restaurantsStore.index('byRestaurant');
-      return restaurantIndex.getAll(id);
-    }).then(data => {
-      if (data) {
-        return Promise.resolve(data);
-      } else {
-        DBHelper.fetchAndCacheReviews(id)
-          .then(data => Promise.resolve(data))
-          .catch(err => Promise.reject(`Oh no! Somethings went wrong! ${err}`));
-      }
+      const tx = db.transaction('reviews')
+        .objectStore('reviews').index('byRestaurant');
+      return tx.getAll(id);
     }).catch(err => Promise.reject(`Oh no! Somethings went wrong! ${err}`));
   }
 
@@ -276,15 +291,13 @@ class DBHelper {
       'comments': comment_text
     } */
 
-    DBHelper.dbPromise().then(db => {
-      if (!db) {
-        return Promise.reject('Database error');
-      }
-
-      const tx = db.transaction('reviews', 'readwrite');
-      const restaurantsStore = tx.objectStore('reviews');
-      return restaurantsStore.get(+id);
-    })
+    return fetch(`${DBHelper.BASE_URL}/reviews/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify(review)
+    }).then(response => response.status);
   }
 }
 

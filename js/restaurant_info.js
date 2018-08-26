@@ -6,15 +6,28 @@ let restaurant;
 let map;
 
 document.addEventListener('DOMContentLoaded', () => {
-  DBHelper.fetchAndCacheReviews();
+
+  // Load reviews content to the cache
+  fetchRestaurantFromURL.then(() => {
+    fillRestaurantHTML();
+    fillReviewsHTML();
+    fillBreadcrumb();
+  });
 
   document.querySelector('#add-new-review').addEventListener('submit', (e) => {
     e.preventDefault();
 
-    const reviewer_name = document.querySelector('#name');
-    const comment_text = document.querySelector('#comment');
-    const rating = document.querySelector('#rating');
-    addNewReview(reviewer_name.value, comment_text.value, rating.value);
+    const reviewer_name = document.querySelector('#name').value.trim();
+    const comment_text = document.querySelector('#comment').value.trim();
+    const rating = document.querySelector('#rating').value;
+
+    // Check if reviewer_name and comment_text contains permitted values
+    if (reviewer_name === '' || comment_text === '') {
+      document.getElementById('review-empty-field-alert').classList.remove('hidden');
+    } else {
+      document.getElementById('review-empty-field-alert').classList.add('hidden');
+      addNewReview(reviewer_name, comment_text, rating);
+    }
   });
 });
 
@@ -22,11 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * Initialize Google map, called from HTML.
  */
 window.initMap = () => {
-  fetchRestaurantFromURL.then((restaurant) => {
-    fillRestaurantHTML();
-    fillReviewsHTML();
-    fillBreadcrumb();
-
+  fetchRestaurantFromURL.then(restaurant => {
     self.map = new google.maps.Map(document.getElementById('map'), {
       zoom: 16,
       center: restaurant.latlng,
@@ -224,24 +233,36 @@ function getParameterByName(name, url) {
  * Add new review
  */
 function addNewReview(reviewer_name, comment_text, rating) {
-  fetch(`${DBHelper.BASE_URL}/reviews/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-    },
-    body: JSON.stringify({
-      'restaurant_id': self.restaurant.id,
-      'name': reviewer_name,
-      'rating': rating,
-      'comments': comment_text
-    })
-  }).then(res => {
-    if (res.ok) {
+  const reviewObj = {
+    restaurant_id: self.restaurant.id,
+    name: reviewer_name,
+    rating: rating,
+    comments: comment_text
+  };
+
+  DBHelper.addReview(reviewObj).then(status => {
+    if (status === 201) {
       DBHelper.fetchAndCacheReviews(self.restaurant.id)
         .then(reviews => {
           self.restaurant.reviews = reviews;
           populateReviews(reviews);
         });
     }
-  }).catch(err => console.error(err));
+    Promise.resolve(true);
+
+  }).catch(err => {
+    console.error(err);
+    DBHelper.dbPromise().then(db => {
+      if (!db) return;
+
+      const tx = db.transaction('reviews-misaligned', 'readwrite');
+      tx.objectStore('reviews-misaligned').put({
+        ...reviewObj,
+        id: Math.trunc(Math.random() * 1000000000),
+        misaligned: true
+      });
+    }).then(() => {
+      populateReviews(reviewObj);
+    })
+  });
 }
