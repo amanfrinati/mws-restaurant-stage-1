@@ -4,6 +4,7 @@ const DBHelper = require('./dbhelper');
 
 let restaurant;
 let map;
+const dbHelper = new DBHelper();
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -60,10 +61,10 @@ const fetchRestaurantFromURL = new Promise((resolve, reject) => {
 
   } else {
     resolve(
-      DBHelper.fetchRestaurantById(id)
+      dbHelper.fetchRestaurantById(id)
         .then(restaurant => {
           self.restaurant = restaurant;
-          return DBHelper.fetchReviewsByRestaurantId(restaurant.id)
+          return dbHelper.fetchReviewsByRestaurantId(restaurant.id)
             .then(reviews => {
               self.restaurant.reviews = reviews;
               return self.restaurant;

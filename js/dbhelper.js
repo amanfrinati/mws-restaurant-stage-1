@@ -7,10 +7,14 @@ const idb = require('idb');
  */
 class DBHelper {
 
+  constructor() {
+    this.dbPromise = this.openDatabase();
+  }
+
   /**
    * Open a connection to the IndexedDb and create relative index
    */
-  static dbPromise() {
+  openDatabase() {
     if (!navigator.serviceWorker) {
       return Promise.resolve();
     }
@@ -47,11 +51,11 @@ class DBHelper {
    * Fetch restaurant info from the server and cache on the DB
    * @param {*} id of restaurant to fetch
    */
-  static fetchAndCacheRestaurants(id) {
+  fetchAndCacheRestaurants(id) {
     return fetch(`${DBHelper.BASE_URL}/restaurants/${id ? id : ''}`)
       .then(res => res.json())
       .then(async restaurants => {
-        const db = await DBHelper.dbPromise();
+        const db = await this.dbPromise;
         const tx = db.transaction('restaurants', 'readwrite');
         const store = tx.objectStore('restaurants');
         restaurants.forEach((entry) => store.put(entry));
@@ -61,8 +65,8 @@ class DBHelper {
       .catch(err => console.error(`Oh no! Somethind went wrong! ${err}`, null));
   }
 
-  static fetchAndCacheReviews(id) {
-    return this.dbPromise().then(db => {
+  fetchAndCacheReviews(id) {
+    return this.dbPromise.then(db => {
       if (!db) return;
 
       const tx = db.transaction('reviews-misaligned');
@@ -80,8 +84,7 @@ class DBHelper {
         .then(res => res.json())
         .then(async reviews => {
           console.log('via di cache');
-
-          const db = await DBHelper.dbPromise();
+          const db = await this.dbPromise;
           const tx = db.transaction('reviews', 'readwrite');
           const store = tx.objectStore('reviews');
           reviews.forEach(entry => store.put(entry));
@@ -96,31 +99,23 @@ class DBHelper {
   /**
    * Fetch all restaurants.
    */
-  static fetchRestaurants() {
-    return DBHelper.dbPromise()
-      .then(db => {
-        if (!db) {
-          return Promise.reject('An error occours while opening DB!');
-        }
-        return db.transaction('restaurants')
-          .objectStore('restaurants').getAll();
-      })
-      .then(data => {
-        if (data && data.length > 0) {
-          return Promise.resolve(data);
-        } else {
-          return DBHelper.fetchAndCacheRestaurants()
-            .then(data => Promise.resolve(data))
-            .catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
-        }
-      }).catch(err => console.error(err));
+  async fetchRestaurants() {
+    await this.fetchAndCacheRestaurants();
+    return this.dbPromise.then(db => {
+      if (!db) {
+        return Promise.reject('An error occours while opening DB!');
+      }
+      return db.transaction('restaurants')
+        .objectStore('restaurants').getAll();
+
+    }).catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
   }
 
   /**
    * Fetch a restaurant by its ID.
    */
-  static fetchRestaurantById(id) {
-    return DBHelper.dbPromise().then(db => {
+  fetchRestaurantById(id) {
+    return this.dbPromise.then(db => {
       if (!db) {
         return Promise.reject('Database error');
       }
@@ -132,16 +127,16 @@ class DBHelper {
       if (data) {
         return Promise.resolve(data);
       } else {
-        DBHelper.fetchAndCacheRestaurants(id)
+        this.fetchAndCacheRestaurants(id)
           .then(data => Promise.resolve(data))
           .catch(err => Promise.reject(`Oh no! An error occours fetching restaurant with ID ${id}. ${err}`));
       }
     }).catch(err => Promise.reject(`Oh no! Somethings went wrong! ${err}`));
   }
 
-  static async fetchReviewsByRestaurantId(id) {
-    await DBHelper.fetchAndCacheReviews(id);
-    return DBHelper.dbPromise().then(db => {
+  async fetchReviewsByRestaurantId(id) {
+    await this.fetchAndCacheReviews(id);
+    return this.dbPromise.then(db => {
       if (!db) {
         return Promise.reject('Database error');
       }
@@ -156,9 +151,9 @@ class DBHelper {
    * Fetch restaurants by a cuisine type with proper error handling.
    * @returns array of restaurants with cuisine === `cuisine`
    */
-  static fetchRestaurantByCuisine(cuisine, callback) {
+  fetchRestaurantByCuisine(cuisine, callback) {
     // Fetch all restaurants with proper error handling
-    DBHelper.dbPromise().then((db) => {
+    this.dbPromise.then((db) => {
       if (!db) return;
 
       const tx = db.transaction('restaurants');
@@ -174,9 +169,9 @@ class DBHelper {
    * Fetch restaurants by a neighborhood with proper error handling.
    * @returns array of restaurants with neighborhood === `neighborhood`
    */
-  static fetchRestaurantByNeighborhood(neighborhood, callback) {
+  fetchRestaurantByNeighborhood(neighborhood, callback) {
     // Fetch all restaurants
-    DBHelper.dbPromise().then((db) => {
+    this.dbPromise.then((db) => {
       if (!db) return;
 
       const tx = db.transaction('restaurants');
@@ -191,9 +186,9 @@ class DBHelper {
   /**
    * Fetch restaurants by a cuisine and a neighborhood with proper error handling.
    */
-  static fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, callback) {
+  fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, callback) {
     // Fetch all restaurants
-    DBHelper.fetchRestaurants()
+    this.fetchRestaurants()
       .then(restaurants => {
         let results = restaurants;
         if (cuisine != 'all') { // filter by cuisine
@@ -209,9 +204,9 @@ class DBHelper {
   /**
    * Fetch all neighborhoods with proper error handling.
    */
-  static fetchNeighborhoods(callback) {
+  fetchNeighborhoods(callback) {
     // Fetch all restaurants
-    DBHelper.fetchRestaurants()
+    this.fetchRestaurants()
       .then(restaurants => {
         // Get all neighborhoods from all restaurants
         const neighborhoods = restaurants.map((v, i) => restaurants[i].neighborhood);
@@ -224,9 +219,9 @@ class DBHelper {
   /**
    * Fetch all cuisines with proper error handling.
    */
-  static fetchCuisines(callback) {
+  fetchCuisines(callback) {
     // Fetch all restaurants
-    DBHelper.fetchRestaurants()
+    this.fetchRestaurants()
       .then(restaurants => {
         // Get all cuisines from all restaurants
         const cuisines = restaurants.map((v, i) => restaurants[i].cuisine_type);
