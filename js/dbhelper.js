@@ -48,7 +48,8 @@ class DBHelper {
   }
 
   /**
-   * Fetch restaurant info from the server and cache on the DB
+   * Fetch restaurant data from the server and cache to DB.
+   * If id is not present, fetch all restaurants on DB.
    * @param {*} id of restaurant to fetch
    */
   fetchAndCacheRestaurants(id) {
@@ -58,27 +59,54 @@ class DBHelper {
         const db = await this.dbPromise;
         const tx = db.transaction('restaurants', 'readwrite');
         const store = tx.objectStore('restaurants');
-        restaurants.forEach((entry) => store.put(entry));
+
+        // If id is not present, from BE return
+        if (restaurants instanceof Array) {
+          restaurants.forEach((entry) => store.put(entry));
+        } else {
+          store.put(restaurants);
+        }
+
         await tx.complete;
         return restaurants;
       })
       .catch(err => console.error(`Oh no! Somethind went wrong! ${err}`, null));
   }
 
+  /**
+   * Fetch restaurant reviews from the server and cache to DB.
+   * If id is not present, fetch all reviews on DB.
+   * @param {*} id of restaurant to fetch
+   */
   fetchAndCacheReviews(id) {
+    const succeffulyInsert = [];
+
     return this.dbPromise.then(db => {
-      if (!db) return;
+      return db.transaction('reviews-misaligned')
+        .objectStore('reviews-misaligned').getAll();
 
-      const tx = db.transaction('reviews-misaligned');
-      return tx.objectStore('reviews-misaligned').openCursor();
-    }).then(function fetchReview(cursor) {
-      if(!cursor) return;
-      console.log("Cursored at:", cursor.value);
-      // I could also do things like:
-      // cursor.update(newValue) to change the value, or
-      // cursor.delete() to delete this entry
-      return cursor.continue().then(fetchReview);
-
+    }).then(reviews => {
+      reviews.forEach(async review => {
+        delete review.id;
+        await DBHelper.addReview(review)
+          .then(status => {
+            if (status === 201) {
+              // succeffulyInsert.push()
+              console.log('POST correctly!');
+            }
+          });
+      });
+    }).then(() => {
+      this.dbPromise.then(db => {
+        const tx = db.transaction('reviews-misaligned', 'readwrite');
+        tx.objectStore('reviews-misaligned').iterateCursor(cursor => {
+          if (!cursor) return;
+          console.log(cursor.value);
+          cursor.delete();
+          cursor.continue();
+        });
+        tx.complete.then(() => console.log('Delete all!'));
+      });
     }).then(() => {
       return fetch(`${DBHelper.BASE_URL}/reviews/${id ? '?restaurant_id=' + id : ''}`)
         .then(res => res.json())
@@ -112,9 +140,11 @@ class DBHelper {
   }
 
   /**
-   * Fetch a restaurant by its ID.
+   * Get from DB the restaurant data
+   * @param {*} id of restaurant to fetch
    */
-  fetchRestaurantById(id) {
+  async fetchRestaurantById(id) {
+    await this.fetchAndCacheRestaurants(id);
     return this.dbPromise.then(db => {
       if (!db) {
         return Promise.reject('Database error');
@@ -123,17 +153,13 @@ class DBHelper {
       const tx = db.transaction('restaurants');
       const restaurantsStore = tx.objectStore('restaurants');
       return restaurantsStore.get(+id);
-    }).then(data => {
-      if (data) {
-        return Promise.resolve(data);
-      } else {
-        this.fetchAndCacheRestaurants(id)
-          .then(data => Promise.resolve(data))
-          .catch(err => Promise.reject(`Oh no! An error occours fetching restaurant with ID ${id}. ${err}`));
-      }
     }).catch(err => Promise.reject(`Oh no! Somethings went wrong! ${err}`));
   }
 
+  /**
+   * Get from DB the restaurant reviewa
+   * @param {*} id of restaurant to fetch
+   */
   async fetchReviewsByRestaurantId(id) {
     await this.fetchAndCacheReviews(id);
     return this.dbPromise.then(db => {
@@ -198,7 +224,7 @@ class DBHelper {
           results = results.filter(r => r.neighborhood == neighborhood);
         }
         callback(null, results);
-      }).catch(error => callback(error, null))
+      }).catch(error => callback(error, null));
   }
 
   /**
@@ -278,6 +304,11 @@ class DBHelper {
     return restaurant.is_favorite;
   }
 
+  /**
+   * POST a new review to the BE.
+   * @param {*} review data
+   * @returns {number} HTTP code response
+   */
   static addReview(review) {
     /* {
       'restaurant_id': self.restaurant.id,

@@ -243,7 +243,7 @@ function addNewReview(reviewer_name, comment_text, rating) {
 
   DBHelper.addReview(reviewObj).then(status => {
     if (status === 201) {
-      DBHelper.fetchAndCacheReviews(self.restaurant.id)
+      dbHelper.fetchAndCacheReviews(self.restaurant.id)
         .then(reviews => {
           self.restaurant.reviews = reviews;
           populateReviews(reviews);
@@ -253,17 +253,16 @@ function addNewReview(reviewer_name, comment_text, rating) {
 
   }).catch(err => {
     console.error(err);
-    DBHelper.dbPromise().then(db => {
+    dbHelper.dbPromise.then(db => {
       if (!db) return;
 
       const tx = db.transaction('reviews-misaligned', 'readwrite');
       tx.objectStore('reviews-misaligned').put({
         ...reviewObj,
-        id: Math.trunc(Math.random() * 1000000000),
-        misaligned: true
+        id: Math.trunc(Math.random() * 1000000000)
       });
     }).then(() => {
-      populateReviews(reviewObj);
+      populateReviews([reviewObj]);
     })
   });
 }
