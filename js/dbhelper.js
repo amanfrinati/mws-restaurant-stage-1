@@ -30,11 +30,7 @@ class DBHelper {
         keyPath: 'id'
       });
       store.createIndex('byRestaurant', 'restaurant_id');
-
-      store = upgradeDb.createObjectStore('reviews-misaligned', {
-        keyPath: 'id'
-      });
-      store.createIndex('byRestaurant', 'restaurant_id');
+      store.createIndex('misaligned', 'misaligned');
     });
   }
 
@@ -79,39 +75,32 @@ class DBHelper {
    * @param {*} id of restaurant to fetch
    */
   fetchAndCacheReviews(id) {
-    const succeffulyInsert = [];
-
     return this.dbPromise.then(db => {
-      return db.transaction('reviews-misaligned')
-        .objectStore('reviews-misaligned').getAll();
+      return db.transaction('reviews')
+        .objectStore('reviews').index('misaligned').getAll();
 
     }).then(reviews => {
+      console.log('misaligned reviews', reviews);
+
       reviews.forEach(async review => {
-        delete review.id;
+        delete review.misaligned;
         await DBHelper.addReview(review)
-          .then(status => {
-            if (status === 201) {
-              // succeffulyInsert.push()
-              console.log('POST correctly!');
+          .then(response => {
+            console.log('risposta dopo la POST', response);
+
+            // If misaligned is not present, the POST was succefful!
+            if (!response.misaligned) {
+              this.addReviewToCache(response);
+
+              // Remove the misaligned record
+              this.removeReviewFromCache(review);
             }
           });
-      });
-    }).then(() => {
-      this.dbPromise.then(db => {
-        const tx = db.transaction('reviews-misaligned', 'readwrite');
-        tx.objectStore('reviews-misaligned').iterateCursor(cursor => {
-          if (!cursor) return;
-          console.log(cursor.value);
-          cursor.delete();
-          cursor.continue();
-        });
-        tx.complete.then(() => console.log('Delete all!'));
       });
     }).then(() => {
       return fetch(`${DBHelper.BASE_URL}/reviews/${id ? '?restaurant_id=' + id : ''}`)
         .then(res => res.json())
         .then(async reviews => {
-          console.log('via di cache');
           const db = await this.dbPromise;
           const tx = db.transaction('reviews', 'readwrite');
           const store = tx.objectStore('reviews');
@@ -120,7 +109,7 @@ class DBHelper {
           console.log('reviews', reviews);
           return reviews;
         })
-        .catch(err => console.error(`Oh no! Somethind went wrong! ${err}`, null));
+        .catch(err => console.error(`Oh no! Somethind went wrong on fetchAndCacheReviews! ${err}`, null));
     });
   }
 
@@ -136,7 +125,7 @@ class DBHelper {
       return db.transaction('restaurants')
         .objectStore('restaurants').getAll();
 
-    }).catch(err => Promise.reject(`Oh no! Somethind went wrong! ${err}`));
+    }).catch(err => Promise.reject(`Oh no! Somethind went wrong on fetchRestaurants! ${err}`));
   }
 
   /**
@@ -153,7 +142,7 @@ class DBHelper {
       const tx = db.transaction('restaurants');
       const restaurantsStore = tx.objectStore('restaurants');
       return restaurantsStore.get(+id);
-    }).catch(err => Promise.reject(`Oh no! Somethings went wrong! ${err}`));
+    }).catch(err => Promise.reject(`Oh no! Somethings went wrong on fetchRestaurantById! ${err}`));
   }
 
   /**
@@ -163,10 +152,6 @@ class DBHelper {
   async fetchReviewsByRestaurantId(id) {
     await this.fetchAndCacheReviews(id);
     return this.dbPromise.then(db => {
-      if (!db) {
-        return Promise.reject('Database error');
-      }
-
       const tx = db.transaction('reviews')
         .objectStore('reviews').index('byRestaurant');
       return tx.getAll(id);
@@ -179,15 +164,11 @@ class DBHelper {
    */
   fetchRestaurantByCuisine(cuisine, callback) {
     // Fetch all restaurants with proper error handling
-    this.dbPromise.then((db) => {
-      if (!db) return;
+    this.dbPromise.then(db =>
+      db.transaction('restaurants')
+        .objectStore('restaurants').index('cuisine').getAll(cuisine)
 
-      const tx = db.transaction('restaurants');
-      const restaurantsStore = tx.objectStore('restaurants');
-      const cuisineIndex = restaurantsStore.index('cuisine');
-      return cuisineIndex.getAll(cuisine);
-
-    }).then(data => callback(null, data))
+    ).then(data => callback(null, data))
       .catch(err => callback(err, null));
   }
 
@@ -197,15 +178,11 @@ class DBHelper {
    */
   fetchRestaurantByNeighborhood(neighborhood, callback) {
     // Fetch all restaurants
-    this.dbPromise.then((db) => {
-      if (!db) return;
+    this.dbPromise.then(db =>
+      db.transaction('restaurants').objectStore('restaurants')
+        .index('neighborhood').getAll(neighborhood)
 
-      const tx = db.transaction('restaurants');
-      const restaurantsStore = tx.objectStore('restaurants');
-      const neighborhoodIndex = restaurantsStore.index('neighborhood');
-      return neighborhoodIndex.getAll(neighborhood);
-
-    }).then(data => callback(null, data))
+    ).then(data => callback(null, data))
       .catch(err => callback(err, null));
   }
 
@@ -261,7 +238,7 @@ class DBHelper {
    * Restaurant page URL.
    */
   static urlForRestaurant(restaurant) {
-    return (`./restaurant.html?id=${restaurant.id}`);
+    return `./restaurant.html?id=${restaurant.id}`;
   }
 
   /**
@@ -347,8 +324,9 @@ class DBHelper {
       // Return an object with a random ID and a property to indicate that is misaligne
       return Promise.resolve({
         ...review,
-        id: Math.trunc(Math.random() * 1000000000),
-        misaligned: true
+        createdAt: new Date(),
+        id: Math.random().toString(36).substring(2, 7) + Math.random().toString(36).substring(2, 7),
+        misaligned: 1
       });
     });;
   }
@@ -359,6 +337,13 @@ class DBHelper {
         .objectStore('reviews').put(review);
       return tx.complete;
     })
+  }
+
+  removeReviewFromCache(review) {
+    this.dbPromise.then(db => {
+      return db.transaction('reviews', 'readwrite')
+        .objectStore('reviews').delete(review.id);
+    });
   }
 }
 

@@ -50,9 +50,9 @@ window.initMap = () => {
  * Get current restaurant from page URL.
  */
 const fetchRestaurantFromURL = new Promise((resolve, reject) => {
-  if (self.restaurant) { // restaurant already fetched!
-    resolve(self.restaurant);
-  }
+  // if (self.restaurant) { // restaurant already fetched!
+  //   resolve(self.restaurant);
+  // }
 
   const id = getParameterByName('id');
   if (!id) {
@@ -138,7 +138,7 @@ function fillReviewsHTML(reviews = self.restaurant.reviews) {
   populateReviews(reviews);
 }
 
-function populateReviews(reviews) {
+function populateReviews(reviews = []) {
   const noReviews = document.getElementById('no-reviews-message');
   reviews.length ? noReviews.classList.add('hidden') : noReviews.classList.remove('hidden');
 
@@ -147,7 +147,10 @@ function populateReviews(reviews) {
     ul.removeChild(ul.firstChild);
   }
 
-  reviews.forEach(review =>
+  // Sort reviews array by date ascending
+  reviews.sort((a, b) => {
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  }).forEach(review =>
     ul.appendChild(createReviewHTML(review))
   );
 }
