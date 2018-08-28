@@ -305,9 +305,9 @@ class DBHelper {
   }
 
   /**
-   * POST a new review to the BE.
+   * Perform the new review POST to the BE
    * @param {*} review data
-   * @returns {number} HTTP code response
+   * @returns {*} The new review created
    */
   static addReview(review) {
     /* {
@@ -324,20 +324,33 @@ class DBHelper {
       }
     }).then(response =>
       response.text()
-    ).then(res =>
-      console.log(res)
-    ).then(fetch(`${DBHelper.BASE_URL}/reviews/`, {
+    ).then(res => {
+      if (!res.indexOf('POST')) {
+        return Promise.reject('POST not admitted!');
+      }
+
+      return fetch(`${DBHelper.BASE_URL}/reviews/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
         },
         body: JSON.stringify(review)
-      })
-    ).then(response =>
-      response.json()
-    ).then(res =>
-      console.log(res)
-    );
+      }).then(response => {
+        if (response.status === 201) {
+          return response.json()
+        }
+        return Promise.reject('POST failed!');
+      });
+    }).catch(err => {
+      console.error('addReview failed to fetch!', err);
+
+      // Return an object with a random ID and a property to indicate that is misaligne
+      return Promise.resolve({
+        ...review,
+        id: Math.trunc(Math.random() * 1000000000),
+        misaligned: true
+      });
+    });;
   }
 
   addReviewToCache(review) {

@@ -241,29 +241,14 @@ function addNewReview(reviewer_name, comment_text, rating) {
     comments: comment_text
   };
 
-  DBHelper.addReview(reviewObj).then(status => {
-    if (status === 201) {
-      dbHelper.addReviewToCache()
-      dbHelper.fetchAndCacheReviews(self.restaurant.id)
-        .then(review => {
-          self.restaurant.reviews.push(review);
-          populateReviews(self.restaurant.reviews);
-        });
-    }
-    Promise.resolve(true);
+  DBHelper.addReview(reviewObj).then(response => {
+    dbHelper.addReviewToCache(response);
 
-  }).catch(err => {
-    console.error(err);
-    dbHelper.dbPromise.then(db => {
-      if (!db) return;
+    // Put the new review to the reviews array and show it
+    self.restaurant.reviews.push(response);
+    populateReviews(self.restaurant.reviews);
 
-      const tx = db.transaction('reviews-misaligned', 'readwrite');
-      tx.objectStore('reviews-misaligned').put({
-        ...reviewObj,
-        id: Math.trunc(Math.random() * 1000000000)
-      });
-    }).then(() => {
-      populateReviews([reviewObj]);
-    })
-  });
+  }).catch(err =>
+    console.error('addNewReview error!', err)
+  );
 }
