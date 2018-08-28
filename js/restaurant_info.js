@@ -162,17 +162,37 @@ function createReviewHTML(review) {
   const li = document.createElement('li');
 
   let div = document.createElement('div');
-
   div.classList.add('comment-header');
+
   const name = document.createElement('span');
   name.classList.add('comment-name');
   name.innerHTML = review.name;
   div.appendChild(name);
 
   const date = document.createElement('span');
+  const createdAtDate = new Date(review.createdAt);
   date.classList.add('comment-date');
-  date.innerHTML = (new Date(review.createdAt)).toLocaleString();
+  date.innerHTML =
+    `${createdAtDate.getFullYear()}/${createdAtDate.getMonth()}/${createdAtDate.getDate()} at ${createdAtDate.getHours()}:${createdAtDate.getMinutes()}`;
   div.appendChild(date);
+
+  if (review.misaligned) {
+    const offlineWarning = document.createElement('div');
+    offlineWarning.classList.add('tooltip');
+
+    const warningIcon = document.createElement('span');
+    warningIcon.classList.add('fas');
+    warningIcon.classList.add('exclamation-triangle');
+    warningIcon.innerHTML = '&#xf071';
+    offlineWarning.appendChild(warningIcon);
+
+    const tooltip = document.createElement('span');
+    tooltip.classList.add('tooltiptext');
+    tooltip.innerHTML = 'This review is not sync with the server!';
+    offlineWarning.appendChild(tooltip);
+
+    div.appendChild(offlineWarning);
+  }
 
   li.appendChild(div);
 

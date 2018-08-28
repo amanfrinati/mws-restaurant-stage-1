@@ -1,6 +1,6 @@
 'use strict';
 
-const staticCacheName = 'restaurant-reviews-static-v9';
+const staticCacheName = 'restaurant-reviews-static-v2';
 const restaurantReviewsImgs = 'restaurant-reviews-imgs-v2';
 const allCaches = [
   staticCacheName,
@@ -15,9 +15,7 @@ self.addEventListener('install', event =>
         'restaurant.html',
         'js/main.js',
         'js/restaurant_info.js',
-        'css/styles.css',
-        'fonts/roboto-v18-latin-regular.woff',
-        'fonts/roboto-v18-latin-700.woff'
+        'css/styles.css'
       ]);
     })
   )
@@ -57,6 +55,11 @@ self.addEventListener('fetch', event => {
       event.respondWith(serveImages(event.request));
       return;
     }
+
+    if (requestUrl.pathname.startsWith('/fonts/')) {
+      event.respondWith(serveFonts(event.request));
+      return;
+    }
   }
 
   event.respondWith(
@@ -73,6 +76,17 @@ function serveImages(request) {
     return cache.match(storageUrl).then(response => {
       return response || fetch(request).then(networkResponse => {
         cache.put(storageUrl, networkResponse.clone());
+        return networkResponse;
+      });
+    });
+  });
+}
+
+function serveFonts(request) {
+  return caches.open(staticCacheName).then(cache => {
+    return cache.match(request.url).then(response => {
+      return response || fetch(request).then(networkResponse => {
+        cache.put(request.url, networkResponse.clone());
         return networkResponse;
       });
     });

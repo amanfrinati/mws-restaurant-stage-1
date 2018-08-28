@@ -168,9 +168,14 @@ function createRestaurantHTML(restaurant) {
   const title = document.createElement('div');
   title.classList.add('thumbnails-title');
 
-  const star = document.createElement('i');
+  // const star = document.createElement('i');
+  // DBHelper.isFavoriteRestaurant(restaurant) ? star.classList.add('fas') : star.classList.add('far');
+  // star.classList.add('fa-star');
+  // title.appendChild(star);
+
+  const star = document.createElement('span');
   DBHelper.isFavoriteRestaurant(restaurant) ? star.classList.add('fas') : star.classList.add('far');
-  star.classList.add('fa-star');
+  star.innerHTML = '&#xf005';
   title.appendChild(star);
 
   const name = document.createElement('h3');

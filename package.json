@@ -12,20 +12,17 @@
     "grunt-responsive-images": "^1.10.1",
     "gulp": "^3.9.1",
     "gulp-autoprefixer": "^5.0.0",
+    "gulp-clean-css": "^3.10.0",
     "gulp-concat": "^2.6.1",
     "gulp-eslint": "^5.0.0",
     "gulp-sass": "^4.0.1",
     "gulp-sourcemaps": "^2.6.4",
-    "gulp-util": "^3.0.8",
     "idb": "^2.1.3",
-    "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0-rc.1",
-    "@babel/preset-env": "^7.0.0-rc.1",
-    "babelify": "^9.0.0",
-    "gulp-gm": "0.0.9"
+    "@babel/preset-env": "^7.0.0-rc.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

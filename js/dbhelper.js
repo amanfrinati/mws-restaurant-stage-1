@@ -80,15 +80,11 @@ class DBHelper {
         .objectStore('reviews').index('misaligned').getAll();
 
     }).then(reviews => {
-      console.log('misaligned reviews', reviews);
-
       reviews.forEach(async review => {
         delete review.misaligned;
         await DBHelper.addReview(review)
           .then(response => {
-            console.log('risposta dopo la POST', response);
-
-            // If misaligned is not present, the POST was succefful!
+            // If misaligned is not present, the POST was executed!
             if (!response.misaligned) {
               this.addReviewToCache(response);
 
@@ -106,7 +102,6 @@ class DBHelper {
           const store = tx.objectStore('reviews');
           reviews.forEach(entry => store.put(entry));
           await tx.complete;
-          console.log('reviews', reviews);
           return reviews;
         })
         .catch(err => console.error(`Oh no! Somethind went wrong on fetchAndCacheReviews! ${err}`, null));

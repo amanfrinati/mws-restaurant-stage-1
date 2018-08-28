@@ -1,21 +1,15 @@
 var gulp = require('gulp');
-var del = require('del');
 var sass = require('gulp-sass');
 var autoprefixer = require('gulp-autoprefixer');
 var browserSync = require('browser-sync').create();
-var eslint = require('gulp-eslint');
+// var eslint = require('gulp-eslint');
 // var jasmine = require('gulp-jasmine-phantom');
-// var concat = require('gulp-concat');
+var concat = require('gulp-concat');
+var cleanCSS = require('gulp-clean-css');
 // var uglify = require('gulp-uglify');
-// var gm = require('gulp-gm');
-// var browserify = require('gulp-browserify');
-
 var browserify = require('browserify');
-var babelify = require('babelify');
 var source = require('vinyl-source-stream');
-var buffer = require('vinyl-buffer');
-var sourcemaps = require('gulp-sourcemaps');
-var util = require('gulp-util');
+// var sourcemaps = require('gulp-sourcemaps');
 
 gulp.task('default', ['copy-html', 'copy-fonts', 'copy-images', 'styles', 'script-main', 'script-restaurant'], function() {
   gulp.watch('sass/**/*.scss', ['styles']);
@@ -26,10 +20,6 @@ gulp.task('default', ['copy-html', 'copy-fonts', 'copy-images', 'styles', 'scrip
     server: './dist',
     notify: false
   });
-});
-
-gulp.task('clean', function (done) {
-  del(['dist'], done);
 });
 
 gulp.task('copy-html', () => {
@@ -55,35 +45,20 @@ gulp.task('copy-fonts', () => {
     .pipe(gulp.dest('dist/fonts'));
 });
 
-// gulp.task('resize-images', () => {
-//   gulp.src('img/*')
-//     .pipe(gm((gmfile) => {
-//       gmfile.
-//     }))
-//     .pipe(gulp.dest('dist/images'))
-// });
-
 gulp.task('styles', function () {
-  gulp.src('sass/**/*.scss')
+  gulp.src([
+    'sass/styles.scss',
+    'sass/regular.scss',
+    'sass/solid.scss'
+  ])
     .pipe(sass().on('error', sass.logError))
     .pipe(autoprefixer({
       browsers: ['last 2 versions']
     }))
-    .pipe(gulp.dest('dist/css'))
+    .pipe(concat('styles.css'))
+    .pipe(cleanCSS({ compatibility: 'ie8' }))
+    .pipe(gulp.dest('dist/css/'))
     .pipe(browserSync.stream());
-});
-
-gulp.task('lint', function () {
-  return gulp.src(['js/*.js'])
-    // eslint() attaches the lint output to the eslint property
-    // of the file object so it can be used by other modules.
-    .pipe(eslint())
-    // eslint.format() outputs the lint results to the console.
-    // Alternatively use eslint.formatEach() (see Docs).
-    .pipe(eslint.format())
-    // To have the process exit with an error code (1) on
-    // lint error, return the stream and pipe to failOnError last.
-    .pipe(eslint.failOnError());
 });
 
 // Basic usage

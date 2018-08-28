@@ -7,8 +7,6 @@
     <link rel="stylesheet" src="//normalize-css.googlecode.com/svn/trunk/normalize.css" />
     <!-- Main CSS file -->
     <link rel="stylesheet" href="css/styles.css">
-    <!-- Fontawesome icons -->
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
     <!-- Theme Color -->
     <meta name="theme-color" content="#4c5367" />
     <link rel="manifest" href="/manifest.json">
@@ -74,10 +72,10 @@
               <h3>Add your review</h3>
               <form id="add-new-review" action="#">
                 <label for="name">Your name</label>
-                <input type="text" name="name" id="name">
+                <input type="text" name="name" id="name" aria-required="true">
 
                 <label for="comment">Your comment</label>
-                <textarea id="comment" name="comment" rows="3" cols="33" wrap="hard"></textarea>
+                <textarea id="comment" name="comment" rows="3" cols="33" wrap="hard" aria-required="true"></textarea>
 
                 <label for="rating">Your rating</label>
                 <select name="rating" id="rating">
