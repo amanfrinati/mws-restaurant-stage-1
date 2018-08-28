@@ -318,12 +318,34 @@ class DBHelper {
     } */
 
     return fetch(`${DBHelper.BASE_URL}/reviews/`, {
-      method: 'POST',
+      method: 'OPTIONS',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
-      },
-      body: JSON.stringify(review)
-    }).then(response => response.status);
+      }
+    }).then(response =>
+      response.text()
+    ).then(res =>
+      console.log(res)
+    ).then(fetch(`${DBHelper.BASE_URL}/reviews/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+        body: JSON.stringify(review)
+      })
+    ).then(response =>
+      response.json()
+    ).then(res =>
+      console.log(res)
+    );
+  }
+
+  addReviewToCache(review) {
+    this.dbPromise.then(db => {
+      const tx = db.transaction('reviews', 'readwrite')
+        .objectStore('reviews').put(review);
+      return tx.complete;
+    })
   }
 }
 

@@ -138,7 +138,7 @@ function fillReviewsHTML(reviews = self.restaurant.reviews) {
   populateReviews(reviews);
 }
 
-function populateReviews(reviews = []) {
+function populateReviews(reviews) {
   const noReviews = document.getElementById('no-reviews-message');
   reviews.length ? noReviews.classList.add('hidden') : noReviews.classList.remove('hidden');
 
@@ -243,10 +243,11 @@ function addNewReview(reviewer_name, comment_text, rating) {
 
   DBHelper.addReview(reviewObj).then(status => {
     if (status === 201) {
+      dbHelper.addReviewToCache()
       dbHelper.fetchAndCacheReviews(self.restaurant.id)
-        .then(reviews => {
-          self.restaurant.reviews = reviews;
-          populateReviews(reviews);
+        .then(review => {
+          self.restaurant.reviews.push(review);
+          populateReviews(self.restaurant.reviews);
         });
     }
     Promise.resolve(true);
