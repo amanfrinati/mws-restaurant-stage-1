@@ -3,7 +3,6 @@
 const DBHelper = require('./dbhelper');
 
 let restaurant;
-// let map;
 const dbHelper = new DBHelper();
 
 /**
@@ -92,16 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * Initialize Google map, called from HTML.
  */
-// window.initMap = () => {
-//   fetchRestaurantFromURL.then(restaurant => {
-//     self.map = new google.maps.Map(document.getElementById('map'), {
-//       zoom: 16,
-//       center: restaurant.latlng,
-//       scrollwheel: false
-//     });
-//     DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
-//   }).catch(error => console.error(error));
-// };
 function loadStaticMap(restaurant) {
   const map = document.getElementById('map');
   map.innerHTML = '';

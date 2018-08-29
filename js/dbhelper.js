@@ -272,29 +272,16 @@ class DBHelper {
   }
 
   /**
-   * Map marker for a restaurant.
-   */
-  static mapMarkerForRestaurant(restaurant, map) {
-    if (!google) {
-      return;
-    }
-
-    return new google.maps.Marker({
-      position: restaurant.latlng,
-      title: restaurant.name,
-      url: DBHelper.urlForRestaurant(restaurant),
-      map: map,
-      animation: google.maps.Animation.DROP
-    });
-  }
-
-  /**
    * @returns true if @param restaurant is favorite
    */
   static isFavoriteRestaurant(restaurant) {
     return JSON.parse(restaurant.is_favorite ? restaurant.is_favorite : false);
   }
 
+  /**
+   * Perform a PUT to DB to update the restaurant favorite option
+   * @param {*} restaurant
+   */
   updateFavorite(restaurant) {
     const URL = `${DBHelper.BASE_URL}/restaurants/${restaurant.id}/?is_favorite=${DBHelper.isFavoriteRestaurant(restaurant)}`;
     return fetch(URL, {
@@ -377,6 +364,10 @@ class DBHelper {
     });
   }
 
+  /**
+   * Add a review to the DB
+   * @param {*} review
+   */
   addReviewToCache(review) {
     this.dbPromise.then(db => {
       return db.transaction('reviews', 'readwrite')
@@ -384,6 +375,10 @@ class DBHelper {
     })
   }
 
+  /**
+   * Remove a review to the DB
+   * @param {*} review
+   */
   removeReviewFromCache(review) {
     this.dbPromise.then(db => {
       return db.transaction('reviews', 'readwrite')
@@ -391,6 +386,10 @@ class DBHelper {
     })
   }
 
+  /**
+   * Add a restaurant to the DB
+   * @param {*} restaurant
+   */
   addRestaurantToCache(restaurant) {
     this.dbPromise.then(db => {
       return db.transaction('restaurants', 'readwrite')
@@ -398,6 +397,10 @@ class DBHelper {
     })
   }
 
+  /**
+   * Remove a restaurant to the DB
+   * @param {*} restaurant
+   */
   removeRestaurantFromCache(restaurant) {
     this.dbPromise.then(db => {
       return db.transaction('restaurants', 'readwrite')
@@ -405,6 +408,13 @@ class DBHelper {
     })
   }
 
+  /**
+   * Return a string of parameters usesful for generate the static Google Maps
+   * @param {*} restaurants restaurant data
+   * @param {*} zoom
+   * @param {*} center
+   * @param {*} size
+   */
   static mapParameters(
     restaurants,
     zoom = '12',

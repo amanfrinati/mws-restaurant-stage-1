@@ -5,8 +5,6 @@ const DBHelper = require('./dbhelper');
 let restaurants;
 let neighborhoods;
 let cuisines;
-// let map;
-// let markers = [];
 const dbHelper = new DBHelper();
 
 /**
@@ -96,22 +94,8 @@ function fillCuisinesHTML(cuisines = self.cuisines) {
 }
 
 /**
- * Initialize Google map, called from HTML.
+ * Initialize Static Google map
  */
-// window.initMap = function() {
-//   const loc = {
-//     lat: 40.722216,
-//     lng: -73.987501
-//   };
-//   self.map = new google.maps.Map(document.getElementById('map'), {
-//     zoom: 12,
-//     center: loc,
-//     scrollwheel: false
-//   });
-
-//   updateRestaurants();
-// };
-
 function loadStaticMap(restaurants) {
   const map = document.getElementById('map');
   map.innerHTML = '';
@@ -181,7 +165,6 @@ function fillRestaurantsHTML(restaurants = self.restaurants) {
     // Show message alert
     document.getElementById('no-restaurants-alert').classList.remove('hidden');
   }
-  // addMarkersToMap();
 }
 
 /**
@@ -233,17 +216,3 @@ function createRestaurantHTML(restaurant) {
 
   return li;
 }
-
-/**
- * Add markers for current restaurants to the map.
- */
-// function addMarkersToMap(restaurants = self.restaurants) {
-  // restaurants.forEach(restaurant => {
-  //   // Add marker to the map
-  //   const marker = DBHelper.mapMarkerForRestaurant(restaurant, self.map);
-  //   google.maps.event.addListener(marker, 'click', () =>
-  //     window.location.href = marker.url
-  //   );
-  //   self.markers.push(marker);
-  // });
-// }
