@@ -124,6 +124,16 @@ function fillRestaurantHTML(restaurant = self.restaurant) {
   const name = document.getElementById('restaurant-name');
   name.innerHTML = restaurant.name;
 
+  const star = document.getElementById('restaurant-favorite');
+  if (DBHelper.isFavoriteRestaurant(restaurant)) {
+    star.classList.add('fas');
+    star.setAttribute('aria-label', `${restaurant.name} is among your favorites`);
+  } else {
+    star.classList.add('far');
+    star.setAttribute('aria-label', `${restaurant.name} is not among your favorites`);
+  }
+  star.innerHTML = '&#xf005';
+
   const address = document.getElementById('restaurant-address');
   address.innerHTML = restaurant.address;
 
