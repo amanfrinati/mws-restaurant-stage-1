@@ -139,6 +139,10 @@ select {
   color: #000;
 }
 
+.pointer {
+  cursor: pointer;
+}
+
 /* ====================== Navigation ====================== */
 nav {
   width: 100%;
@@ -207,8 +211,15 @@ nav {
 }
 
 #map {
-  height: 400px;
+  max-height: 400px;
   background-color: #ccc;
+}
+
+.static-map {
+  display: block;
+  margin-right: auto;
+  margin-left: auto;
+  max-height: 400px;
 }
 
 /* ====================== Restaurant Filtering ====================== */
@@ -333,10 +344,10 @@ nav {
   #map-container {
     width: 50%;
     order: 1;
+    background: #ccc;
   }
 
   #map {
-    background-color: #ccc;
     height: 100%;
     width: 100%;
   }
@@ -491,6 +502,11 @@ nav {
   font-size: 1.4rem;
 }
 
+.r-exclamation-triangle {
+  color: #bd7a00;
+  font-size: 3rem;
+}
+
 /* ====================== Add your review ====================== */
 
 #add-review-container {
@@ -518,7 +534,6 @@ nav {
   border-radius: 4px;
   border: 1px solid #ddd;
   background-color: #ffa500;
-  cursor: pointer;
 }
 
 /* ====================== Tooltip style ====================== */
@@ -534,12 +549,8 @@ nav {
     text-align: center;
     padding: 5px 0;
     border-radius: 6px;
-
-    /* Position the tooltip right */
     position: absolute;
     z-index: 1;
-    top: -5px;
-    right: 125%;
 
     /* Add fade transition*/
     opacity: 0;
@@ -548,12 +559,37 @@ nav {
     &::after {
       content: " ";
       position: absolute;
+    //   top: 50%;
+    //   left: 100%; /* To the right of the tooltip */
+    //   margin-top: -50px;
+      border-width: 5px;
+      border-style: solid;
+    }
+  }
+
+  /* Position the tooltip right */
+  .tooltiptext-right {
+    top: -5px;
+    right: 125%;
+
+    &::after {
       top: 50%;
       left: 100%; /* To the right of the tooltip */
       margin-top: -50px;
-      border-width: 5px;
-      border-style: solid;
       border-color: transparent transparent transparent #ffa500;
+    }
+  }
+
+  /* Position the tooltip right */
+  .tooltiptext-left {
+    top: -30px;
+    left: 115%;
+
+    &::after {
+      top: 50%;
+      right: 100%; /* To the left of the tooltip */
+      margin-top: -7px;
+      border-color: transparent #ffa500 transparent transparent;
     }
   }
 
@@ -578,7 +614,6 @@ nav {
   }
 
   .inside #map-container {
-    height: 400px;
     order: -1;
   }
 
@@ -592,6 +627,10 @@ nav {
 
   .restaurant-detail {
     padding: 0 10px;
+  }
+
+  .static-map {
+    max-height: 400px;
   }
 }
 

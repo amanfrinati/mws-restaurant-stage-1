@@ -25,6 +25,7 @@ class DBHelper {
       });
       store.createIndex('cuisine', 'cuisine_type');
       store.createIndex('neighborhood', 'neighborhood');
+      store.createIndex('misaligned', 'misaligned');
 
       store = upgradeDb.createObjectStore('reviews', {
         keyPath: 'id'
@@ -49,24 +50,43 @@ class DBHelper {
    * @param {*} id of restaurant to fetch
    */
   fetchAndCacheRestaurants(id) {
-    return fetch(`${DBHelper.BASE_URL}/restaurants/${id ? id : ''}`)
-      .then(res => res.json())
-      .then(async restaurants => {
-        const db = await this.dbPromise;
-        const tx = db.transaction('restaurants', 'readwrite');
-        const store = tx.objectStore('restaurants');
+    return this.dbPromise.then(db => {
+      return db.transaction('restaurants')
+        .objectStore('restaurants').index('misaligned').getAll();
 
-        // If id is not present, from BE return
-        if (restaurants instanceof Array) {
-          restaurants.forEach((entry) => store.put(entry));
-        } else {
-          store.put(restaurants);
-        }
+    }).then(restaurants => {
+      restaurants.forEach(restaurant => {
+        delete restaurant.misaligned;
+        this.updateFavorite(restaurant)
+          .then(response => {
+            // If misaligned is not present, the POST was executed!
+            if (!response.misaligned) {
 
-        await tx.complete;
-        return restaurants;
-      })
-      .catch(err => console.error(`Oh no! Somethind went wrong! ${err}`, null));
+              // Remove the misaligned record
+              // This record will push on next then()
+              this.removeRestaurantFromCache(response);
+            }
+          });
+      });
+    }).then(() => {
+      return fetch(`${DBHelper.BASE_URL}/restaurants/${id ? id : ''}`)
+        .then(res => res.json())
+        .then(restaurants => {
+          return this.dbPromise.then(db => {
+            const tx = db.transaction('restaurants', 'readwrite');
+            const store = tx.objectStore('restaurants');
+
+            // If id is not present, from BE return an array
+            if (id) {
+              store.put(restaurants);
+            } else {
+              restaurants.forEach(entry => store.put(entry));
+            }
+            return tx.complete;
+          })
+        })
+        .catch(err => console.error(`Oh no! Somethind went wrong on fetchAndCacheRestaurants! ${err}`, null));
+    })
   }
 
   /**
@@ -114,11 +134,10 @@ class DBHelper {
   async fetchRestaurants() {
     await this.fetchAndCacheRestaurants();
     return this.dbPromise.then(db => {
-      if (!db) {
-        return Promise.reject('An error occours while opening DB!');
-      }
-      return db.transaction('restaurants')
-        .objectStore('restaurants').getAll();
+      const tx = db.transaction('restaurants')
+        .objectStore('restaurants');
+      const restaurants = tx.getAll();
+      return restaurants;
 
     }).catch(err => Promise.reject(`Oh no! Somethind went wrong on fetchRestaurants! ${err}`));
   }
@@ -130,13 +149,9 @@ class DBHelper {
   async fetchRestaurantById(id) {
     await this.fetchAndCacheRestaurants(id);
     return this.dbPromise.then(db => {
-      if (!db) {
-        return Promise.reject('Database error');
-      }
-
-      const tx = db.transaction('restaurants');
-      const restaurantsStore = tx.objectStore('restaurants');
-      return restaurantsStore.get(+id);
+      const tx = db.transaction('restaurants')
+        .objectStore('restaurants');
+      return tx.get(+id);
     }).catch(err => Promise.reject(`Oh no! Somethings went wrong on fetchRestaurantById! ${err}`));
   }
 
@@ -257,23 +272,45 @@ class DBHelper {
   }
 
   /**
-   * Map marker for a restaurant.
-   */
-  static mapMarkerForRestaurant(restaurant, map) {
-    return new google.maps.Marker({
-      position: restaurant.latlng,
-      title: restaurant.name,
-      url: DBHelper.urlForRestaurant(restaurant),
-      map: map,
-      animation: google.maps.Animation.DROP
-    });
-  }
-
-  /**
    * @returns true if @param restaurant is favorite
    */
   static isFavoriteRestaurant(restaurant) {
-    return restaurant.is_favorite;
+    return JSON.parse(restaurant.is_favorite ? restaurant.is_favorite : false);
+  }
+
+  /**
+   * Perform a PUT to DB to update the restaurant favorite option
+   * @param {*} restaurant
+   */
+  updateFavorite(restaurant) {
+    const URL = `${DBHelper.BASE_URL}/restaurants/${restaurant.id}/?is_favorite=${DBHelper.isFavoriteRestaurant(restaurant)}`;
+    return fetch(URL, {
+      method: 'OPTIONS'
+    }).then(response =>
+      response.text()
+    ).then(res => {
+      if (!res.indexOf('PUT')) {
+        return Promise.reject('PUT not admitted!');
+      }
+
+      return fetch(URL, {
+        method: 'PUT',
+      }).then(response => {
+        if (response.ok) {
+          return response.json()
+        }
+        return Promise.reject('PUT failed!');
+      });
+    }).catch(err => {
+      console.error('addReview failed to fetch!', err);
+
+      // Return an object with a random ID and a property to indicate that is misaligne
+      return Promise.resolve({
+        ...restaurant,
+        is_favorite: DBHelper.isFavoriteRestaurant(restaurant),
+        misaligned: 1
+      });
+    });
   }
 
   /**
@@ -283,13 +320,14 @@ class DBHelper {
    */
   static addReview(review) {
     /* {
-      'restaurant_id': self.restaurant.id,
-      'name': reviewer_name,
-      'rating': rating,
-      'comments': comment_text
+        'restaurant_id': self.restaurant.id,
+        'name': reviewer_name,
+        'rating': rating,
+        'comments': comment_text
     } */
 
-    return fetch(`${DBHelper.BASE_URL}/reviews/`, {
+    const URL = `${DBHelper.BASE_URL}/reviews/`;
+    return fetch(URL, {
       method: 'OPTIONS',
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
@@ -301,7 +339,7 @@ class DBHelper {
         return Promise.reject('POST not admitted!');
       }
 
-      return fetch(`${DBHelper.BASE_URL}/reviews/`, {
+      return fetch(URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
@@ -323,22 +361,80 @@ class DBHelper {
         id: Math.random().toString(36).substring(2, 7) + Math.random().toString(36).substring(2, 7),
         misaligned: 1
       });
-    });;
+    });
   }
 
+  /**
+   * Add a review to the DB
+   * @param {*} review
+   */
   addReviewToCache(review) {
     this.dbPromise.then(db => {
-      const tx = db.transaction('reviews', 'readwrite')
+      return db.transaction('reviews', 'readwrite')
         .objectStore('reviews').put(review);
-      return tx.complete;
     })
   }
 
+  /**
+   * Remove a review to the DB
+   * @param {*} review
+   */
   removeReviewFromCache(review) {
     this.dbPromise.then(db => {
       return db.transaction('reviews', 'readwrite')
         .objectStore('reviews').delete(review.id);
+    })
+  }
+
+  /**
+   * Add a restaurant to the DB
+   * @param {*} restaurant
+   */
+  addRestaurantToCache(restaurant) {
+    this.dbPromise.then(db => {
+      return db.transaction('restaurants', 'readwrite')
+        .objectStore('restaurants').put(restaurant);
+    })
+  }
+
+  /**
+   * Remove a restaurant to the DB
+   * @param {*} restaurant
+   */
+  removeRestaurantFromCache(restaurant) {
+    this.dbPromise.then(db => {
+      return db.transaction('restaurants', 'readwrite')
+        .objectStore('restaurants').delete(restaurant.id);
+    })
+  }
+
+  /**
+   * Return a string of parameters usesful for generate the static Google Maps
+   * @param {*} restaurants restaurant data
+   * @param {*} zoom
+   * @param {*} center
+   * @param {*} size
+   */
+  static mapParameters(
+    restaurants,
+    zoom = '12',
+    center = '40.722216,-73.987501',
+    size = '640x400') {
+
+    let params = [];
+    params.push(`zoom=${zoom}`);
+    params.push(`center=${center}`);
+    params.push(`size=${size}`);
+    params.push(`scale=${Math.trunc(window.devicePixelRatio)}`);
+    params.push('key=AIzaSyBxgA4ORynngregy413hL73sS8UHiny9IM');
+
+    const mark = [];
+    restaurants.forEach(r => {
+      mark.push(`markers=label:${r.name.substring(0, 1).toLocaleUpperCase()}|${r.latlng.lat},${r.latlng.lng}`);
     });
+    params.push(mark.join('&'));
+
+    return encodeURI(params.join('&'));
   }
 }
 

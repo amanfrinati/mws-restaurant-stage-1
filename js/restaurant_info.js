@@ -3,7 +3,6 @@
 const DBHelper = require('./dbhelper');
 
 let restaurant;
-let map;
 const dbHelper = new DBHelper();
 
 /**
@@ -31,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fillRestaurantHTML();
     fillReviewsHTML();
     fillBreadcrumb();
+    loadStaticMap(self.restaurant);
   });
 
   document.querySelector('#add-new-review').addEventListener('submit', (e) => {
@@ -46,8 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
       div.setAttribute('role', 'alert');
       div.setAttribute('id', 'review-empty-field-alert');
       div.innerHTML = '<strong>Your name</strong> and <strong>Your comment</strong> can\'t be empty!';
-      div.classList.add('alert');
-      div.classList.add('alert-danger');
+      div.classList.add('alert', 'alert-danger');
 
       const form = document.getElementById('add-new-review');
       form.appendChild(div);
@@ -73,21 +72,39 @@ document.addEventListener('DOMContentLoaded', () => {
       addNewReview(reviewer_name, comment_text, rating);
     }
   });
+
+  document.querySelector('#restaurant-favorite').addEventListener('click', (e) => {
+    e.preventDefault();
+
+    dbHelper.updateFavorite({
+      ...self.restaurant,
+      is_favorite: !DBHelper.isFavoriteRestaurant(self.restaurant)
+    }).then(result => {
+      dbHelper.addRestaurantToCache(result);
+
+      self.restaurant = result;
+      fillRestaurantFavoriteHTML(result);
+    });
+  });
 });
 
 /**
  * Initialize Google map, called from HTML.
  */
-window.initMap = () => {
-  fetchRestaurantFromURL.then(restaurant => {
-    self.map = new google.maps.Map(document.getElementById('map'), {
-      zoom: 16,
-      center: restaurant.latlng,
-      scrollwheel: false
-    });
-    DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
-  }).catch(error => console.error(error));
-};
+function loadStaticMap(restaurant) {
+  const map = document.getElementById('map');
+  map.innerHTML = '';
+
+  const gMap = document.createElement('img');
+  gMap.classList.add('static-map');
+  gMap.setAttribute('alt', `Position of Restaurant ${restaurant.name}`);
+  gMap.setAttribute('sizes', '(min-width: 650px) 50vw, 100vw');
+  gMap.setAttribute('src', 'https://maps.googleapis.com/maps/api/staticmap?' +
+    DBHelper.mapParameters([restaurant], '17', `${restaurant.latlng.lat},${restaurant.latlng.lng}`, '640x400')
+  );
+
+  map.appendChild(gMap);
+}
 
 /**
  * Get current restaurant from page URL.
@@ -122,7 +139,12 @@ const fetchRestaurantFromURL = new Promise((resolve, reject) => {
  */
 function fillRestaurantHTML(restaurant = self.restaurant) {
   const name = document.getElementById('restaurant-name');
-  name.innerHTML = restaurant.name;
+  name.insertAdjacentHTML('afterbegin', restaurant.name);
+
+  const star = document.getElementById('restaurant-favorite');
+  star.classList.add('pointer', 'far');
+  star.innerHTML = '&#xf005';
+  fillRestaurantFavoriteHTML(restaurant);
 
   const address = document.getElementById('restaurant-address');
   address.innerHTML = restaurant.address;
@@ -141,6 +163,51 @@ function fillRestaurantHTML(restaurant = self.restaurant) {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
+
+  fillRestaurantMisalignedAlter();
+}
+
+function fillRestaurantFavoriteHTML(restaurant = self.restaurant) {
+  const star = document.getElementById('restaurant-favorite');
+
+  if (DBHelper.isFavoriteRestaurant(restaurant)) {
+    star.classList.replace('far', 'fas');
+    star.setAttribute('aria-label', `${restaurant.name} is among your favorites`);
+  } else {
+    star.classList.replace('fas', 'far');
+    star.setAttribute('aria-label', `${restaurant.name} is not among your favorites`);
+  }
+
+  const divNotSync = document.getElementById('restaurant-not-sync');
+  if (restaurant.misaligned) {
+    divNotSync.classList.remove('hidden');
+  } else {
+    divNotSync.classList.add('hidden');
+  }
+}
+
+function fillRestaurantMisalignedAlter() {
+  const warningMsg = 'Warning! This restaurant is not sync with the server because you are offline. Data will be sync next connection.';
+
+  const divNotSync = document.getElementById('restaurant-not-sync');
+  divNotSync.classList.add('hidden');
+
+  const offlineWarning = document.createElement('div');
+  offlineWarning.classList.add('tooltip');
+
+  const warningIcon = document.createElement('span');
+  warningIcon.classList.add('fas', 'r-exclamation-triangle');
+  warningIcon.setAttribute('aria-label', warningMsg);
+  warningIcon.innerHTML = '&#xf071';
+  offlineWarning.appendChild(warningIcon);
+
+  const tooltip = document.createElement('span');
+  tooltip.classList.add('tooltiptext', 'tooltiptext-left');
+  tooltip.setAttribute('aria-hidden', 'true');
+  tooltip.innerHTML = warningMsg;
+  offlineWarning.appendChild(tooltip);
+
+  divNotSync.appendChild(offlineWarning);
 }
 
 /**
@@ -212,8 +279,13 @@ function createReviewHTML(review) {
   const date = document.createElement('span');
   const createdAtDate = new Date(review.createdAt);
   date.classList.add('comment-date');
+  const hours = createdAtDate.getHours();
+  const minutes = createdAtDate.getMinutes();
+  const month = createdAtDate.getMonth();
+  const day = createdAtDate.getDate();
+
   date.innerHTML =
-    `${createdAtDate.getFullYear()}/${createdAtDate.getMonth()}/${createdAtDate.getDate()} at ${createdAtDate.getHours()}:${createdAtDate.getMinutes()}`;
+    `${createdAtDate.getFullYear()}/${month < 10 ? '0' + month : month}/${day < 10 ? '0' + day : day} at ${hours < 10 ? '0' + hours : hours}:${minutes < 10 ? '0' + minutes : minutes}`;
   div.appendChild(date);
 
   if (review.misaligned) {
@@ -224,14 +296,13 @@ function createReviewHTML(review) {
     offlineWarning.classList.add('tooltip');
 
     const warningIcon = document.createElement('span');
-    warningIcon.classList.add('fas');
-    warningIcon.classList.add('exclamation-triangle');
+    warningIcon.classList.add('fas', 'exclamation-triangle');
     warningIcon.setAttribute('aria-label', warningMsg);
     warningIcon.innerHTML = '&#xf071';
     offlineWarning.appendChild(warningIcon);
 
     const tooltip = document.createElement('span');
-    tooltip.classList.add('tooltiptext');
+    tooltip.classList.add('tooltiptext', 'tooltiptext-right');
     tooltip.setAttribute('aria-hidden', 'true');
     tooltip.innerHTML = warningMsg;
     offlineWarning.appendChild(tooltip);
