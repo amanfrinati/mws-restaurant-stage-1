@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dbHelper.addRestaurantToCache(result);
 
       self.restaurant = result;
-      fillRestaurantFavoriteHTML();
+      fillRestaurantFavoriteHTML(result);
     });
   });
 });
@@ -140,7 +140,7 @@ function fillRestaurantHTML(restaurant = self.restaurant) {
   const star = document.getElementById('restaurant-favorite');
   star.classList.add('pointer', 'far');
   star.innerHTML = '&#xf005';
-  fillRestaurantFavoriteHTML();
+  fillRestaurantFavoriteHTML(restaurant);
 
   const address = document.getElementById('restaurant-address');
   address.innerHTML = restaurant.address;
@@ -159,6 +159,8 @@ function fillRestaurantHTML(restaurant = self.restaurant) {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
+
+  fillRestaurantMisalignedAlter();
 }
 
 function fillRestaurantFavoriteHTML(restaurant = self.restaurant) {
@@ -171,6 +173,37 @@ function fillRestaurantFavoriteHTML(restaurant = self.restaurant) {
     star.classList.replace('fas', 'far');
     star.setAttribute('aria-label', `${restaurant.name} is not among your favorites`);
   }
+
+  const divNotSync = document.getElementById('restaurant-not-sync');
+  if (restaurant.misaligned) {
+    divNotSync.classList.remove('hidden');
+  } else {
+    divNotSync.classList.add('hidden');
+  }
+}
+
+function fillRestaurantMisalignedAlter() {
+  const warningMsg = 'Warning! This restaurant is not sync with the server because you are offline. Data will be sync next connection.';
+
+  const divNotSync = document.getElementById('restaurant-not-sync');
+  divNotSync.classList.add('hidden');
+
+  const offlineWarning = document.createElement('div');
+  offlineWarning.classList.add('tooltip');
+
+  const warningIcon = document.createElement('span');
+  warningIcon.classList.add('fas', 'r-exclamation-triangle');
+  warningIcon.setAttribute('aria-label', warningMsg);
+  warningIcon.innerHTML = '&#xf071';
+  offlineWarning.appendChild(warningIcon);
+
+  const tooltip = document.createElement('span');
+  tooltip.classList.add('tooltiptext', 'tooltiptext-left');
+  tooltip.setAttribute('aria-hidden', 'true');
+  tooltip.innerHTML = warningMsg;
+  offlineWarning.appendChild(tooltip);
+
+  divNotSync.appendChild(offlineWarning);
 }
 
 /**
@@ -264,7 +297,7 @@ function createReviewHTML(review) {
     offlineWarning.appendChild(warningIcon);
 
     const tooltip = document.createElement('span');
-    tooltip.classList.add('tooltiptext');
+    tooltip.classList.add('tooltiptext', 'tooltiptext-right');
     tooltip.setAttribute('aria-hidden', 'true');
     tooltip.innerHTML = warningMsg;
     offlineWarning.appendChild(tooltip);
