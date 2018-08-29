@@ -42,9 +42,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Check if reviewer_name and comment_text contains permitted values
     if (reviewer_name === '' || comment_text === '') {
-      document.getElementById('review-empty-field-alert').classList.remove('hidden');
+      const div = document.createElement('div');
+      div.setAttribute('role', 'alert');
+      div.setAttribute('id', 'review-empty-field-alert');
+      div.innerHTML = '<strong>Your name</strong> and <strong>Your comment</strong> can\'t be empty!';
+      div.classList.add('alert');
+      div.classList.add('alert-danger');
+
+      const form = document.getElementById('add-new-review');
+      form.appendChild(div);
+
+      if (reviewer_name === '') {
+        document.getElementById('name').setAttribute('aria-invalid', 'true');
+      } else {
+        document.getElementById('name').setAttribute('aria-invalid', 'false');
+      }
+
+      if (comment_text === '') {
+        document.getElementById('comment').setAttribute('aria-invalid', 'true');
+      } else {
+        document.getElementById('comment').setAttribute('aria-invalid', 'false');
+      }
     } else {
-      document.getElementById('review-empty-field-alert').classList.add('hidden');
+      const alert = document.getElementById('review-empty-field-alert');
+      if (alert) {
+        document.getElementById('add-new-review').removeChild(alert);
+      }
+
+      // Submit the date
       addNewReview(reviewer_name, comment_text, rating);
     }
   });
@@ -195,18 +220,22 @@ function createReviewHTML(review) {
   div.appendChild(date);
 
   if (review.misaligned) {
+    const warningMsg = 'Warning! This review is not sync with the server because you are offline. Data will be sync next connection.';
+
     const offlineWarning = document.createElement('div');
     offlineWarning.classList.add('tooltip');
 
     const warningIcon = document.createElement('span');
     warningIcon.classList.add('fas');
     warningIcon.classList.add('exclamation-triangle');
+    warningIcon.setAttribute('aria-label', warningMsg);
     warningIcon.innerHTML = '&#xf071';
     offlineWarning.appendChild(warningIcon);
 
     const tooltip = document.createElement('span');
     tooltip.classList.add('tooltiptext');
-    tooltip.innerHTML = 'This review is not sync with the server!';
+    tooltip.setAttribute('aria-hidden', 'true');
+    tooltip.innerHTML = warningMsg;
     offlineWarning.appendChild(tooltip);
 
     div.appendChild(offlineWarning);

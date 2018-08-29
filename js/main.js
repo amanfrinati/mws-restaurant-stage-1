@@ -186,13 +186,14 @@ function createRestaurantHTML(restaurant) {
   const title = document.createElement('div');
   title.classList.add('thumbnails-title');
 
-  // const star = document.createElement('i');
-  // DBHelper.isFavoriteRestaurant(restaurant) ? star.classList.add('fas') : star.classList.add('far');
-  // star.classList.add('fa-star');
-  // title.appendChild(star);
-
   const star = document.createElement('span');
-  DBHelper.isFavoriteRestaurant(restaurant) ? star.classList.add('fas') : star.classList.add('far');
+  if (DBHelper.isFavoriteRestaurant(restaurant)) {
+    star.classList.add('fas');
+    star.setAttribute('aria-label', `${restaurant.name} is among your favorites`);
+  } else {
+    star.classList.add('far');
+    star.setAttribute('aria-label', `${restaurant.name} is not among your favorites`);
+  }
   star.innerHTML = '&#xf005';
   title.appendChild(star);
 
