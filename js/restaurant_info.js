@@ -141,9 +141,6 @@ function fillRestaurantHTML(restaurant = self.restaurant) {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
-
-  // fill reviews
-  // fillReviewsHTML();
 }
 
 /**
@@ -220,6 +217,7 @@ function createReviewHTML(review) {
   div.appendChild(date);
 
   if (review.misaligned) {
+    /* Tooltip idea from https://www.w3schools.com/css/css_tooltip.asp */
     const warningMsg = 'Warning! This review is not sync with the server because you are offline. Data will be sync next connection.';
 
     const offlineWarning = document.createElement('div');
