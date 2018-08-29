@@ -10,6 +10,24 @@ let markers = [];
 const dbHelper = new DBHelper();
 
 /**
+ * Register the Service Worker
+ */
+if (navigator.serviceWorker) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('../sw.js')
+      .then(
+        () => {
+          if (!navigator.serviceWorker.controller) {
+            return;
+          }
+        },
+        (err) => console.error(`ServiceWorker registration failed: ${err}`)
+      )
+      .catch(err => console.log(err));
+  });
+}
+
+/**
  * Fetch neighborhoods and cuisines as soon as the page is loaded.
  */
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,8 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelector('select[name="cuisines"]').onchange = updateRestaurants;
   document.querySelector('select[name="neighborhoods"]').onchange = updateRestaurants;
-
-  updateRestaurants();
 });
 
 /**
@@ -90,6 +106,8 @@ window.initMap = function() {
     center: loc,
     scrollwheel: false
   });
+
+  updateRestaurants();
 };
 
 /**
@@ -211,23 +229,5 @@ function addMarkersToMap(restaurants = self.restaurants) {
       window.location.href = marker.url
     );
     self.markers.push(marker);
-  });
-}
-
-/**
- * Register the Service Worker
- */
-if (navigator.serviceWorker) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('../sw.js')
-      .then(
-        () => {
-          if (!navigator.serviceWorker.controller) {
-            return;
-          }
-        },
-        (err) => console.error(`ServiceWorker registration failed: ${err}`)
-      )
-      .catch(err => console.log(err));
   });
 }

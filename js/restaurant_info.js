@@ -6,6 +6,24 @@ let restaurant;
 let map;
 const dbHelper = new DBHelper();
 
+/**
+ * Register the Service Worker
+ */
+if (navigator.serviceWorker) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('../sw.js')
+      .then(
+        () => {
+          if (!navigator.serviceWorker.controller) {
+            return;
+          }
+        },
+        (err) => console.error(`ServiceWorker registration failed: ${err}`)
+      )
+      .catch(err => console.log(err));
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
   // Load reviews content to the cache
@@ -271,7 +289,15 @@ function addNewReview(reviewer_name, comment_text, rating) {
     self.restaurant.reviews.push(response);
     populateReviews(self.restaurant.reviews);
 
+    clearAddReviewForm();
+
   }).catch(err =>
     console.error('addNewReview error!', err)
   );
+}
+
+function clearAddReviewForm() {
+  document.querySelector('#name').value = '';
+  document.querySelector('#comment').value = '';
+  document.querySelector('#rating').value = 1;
 }
