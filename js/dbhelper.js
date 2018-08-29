@@ -404,6 +404,28 @@ class DBHelper {
         .objectStore('restaurants').delete(restaurant.id);
     })
   }
+
+  static mapParameters(
+    restaurants,
+    zoom = '12',
+    center = '40.722216,-73.987501',
+    size = '640x400') {
+
+    let params = [];
+    params.push(`zoom=${zoom}`);
+    params.push(`center=${center}`);
+    params.push(`size=${size}`);
+    params.push(`scale=${Math.trunc(window.devicePixelRatio)}`);
+    params.push('key=AIzaSyBxgA4ORynngregy413hL73sS8UHiny9IM');
+
+    const mark = [];
+    restaurants.forEach(r => {
+      mark.push(`markers=label:${r.name.substring(0, 1).toLocaleUpperCase()}|${r.latlng.lat},${r.latlng.lng}`);
+    });
+    params.push(mark.join('&'));
+
+    return encodeURI(params.join('&'));
+  }
 }
 
 module.exports = DBHelper;

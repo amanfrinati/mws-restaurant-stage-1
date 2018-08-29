@@ -211,8 +211,15 @@ nav {
 }
 
 #map {
-  height: 400px;
+  max-height: 400px;
   background-color: #ccc;
+}
+
+.static-map {
+  display: block;
+  margin-right: auto;
+  margin-left: auto;
+  max-height: 400px;
 }
 
 /* ====================== Restaurant Filtering ====================== */
@@ -337,10 +344,10 @@ nav {
   #map-container {
     width: 50%;
     order: 1;
+    background: #ccc;
   }
 
   #map {
-    background-color: #ccc;
     height: 100%;
     width: 100%;
   }
@@ -606,7 +613,6 @@ nav {
   }
 
   .inside #map-container {
-    height: 400px;
     order: -1;
   }
 
@@ -620,6 +626,10 @@ nav {
 
   .restaurant-detail {
     padding: 0 10px;
+  }
+
+  .static-map {
+    max-height: 400px;
   }
 }
 
