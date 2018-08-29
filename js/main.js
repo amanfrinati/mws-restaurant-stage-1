@@ -36,6 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelector('select[name="cuisines"]').onchange = updateRestaurants;
   document.querySelector('select[name="neighborhoods"]').onchange = updateRestaurants;
+
+  updateRestaurants();
 });
 
 /**

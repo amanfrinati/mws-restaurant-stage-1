@@ -46,8 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
       div.setAttribute('role', 'alert');
       div.setAttribute('id', 'review-empty-field-alert');
       div.innerHTML = '<strong>Your name</strong> and <strong>Your comment</strong> can\'t be empty!';
-      div.classList.add('alert');
-      div.classList.add('alert-danger');
+      div.classList.add('alert', 'alert-danger');
 
       const form = document.getElementById('add-new-review');
       form.appendChild(div);
@@ -72,6 +71,20 @@ document.addEventListener('DOMContentLoaded', () => {
       // Submit the date
       addNewReview(reviewer_name, comment_text, rating);
     }
+  });
+
+  document.querySelector('#restaurant-favorite').addEventListener('click', (e) => {
+    e.preventDefault();
+
+    dbHelper.updateFavorite({
+      ...self.restaurant,
+      is_favorite: !DBHelper.isFavoriteRestaurant(self.restaurant)
+    }).then(result => {
+      dbHelper.addRestaurantToCache(result);
+
+      self.restaurant = result;
+      fillRestaurantFavoriteHTML();
+    });
   });
 });
 
@@ -122,17 +135,12 @@ const fetchRestaurantFromURL = new Promise((resolve, reject) => {
  */
 function fillRestaurantHTML(restaurant = self.restaurant) {
   const name = document.getElementById('restaurant-name');
-  name.innerHTML = restaurant.name;
+  name.insertAdjacentHTML('afterbegin', restaurant.name);
 
   const star = document.getElementById('restaurant-favorite');
-  if (DBHelper.isFavoriteRestaurant(restaurant)) {
-    star.classList.add('fas');
-    star.setAttribute('aria-label', `${restaurant.name} is among your favorites`);
-  } else {
-    star.classList.add('far');
-    star.setAttribute('aria-label', `${restaurant.name} is not among your favorites`);
-  }
+  star.classList.add('pointer', 'far');
   star.innerHTML = '&#xf005';
+  fillRestaurantFavoriteHTML();
 
   const address = document.getElementById('restaurant-address');
   address.innerHTML = restaurant.address;
@@ -151,9 +159,18 @@ function fillRestaurantHTML(restaurant = self.restaurant) {
   if (restaurant.operating_hours) {
     fillRestaurantHoursHTML();
   }
+}
 
-  // fill reviews
-  // fillReviewsHTML();
+function fillRestaurantFavoriteHTML(restaurant = self.restaurant) {
+  const star = document.getElementById('restaurant-favorite');
+
+  if (DBHelper.isFavoriteRestaurant(restaurant)) {
+    star.classList.replace('far', 'fas');
+    star.setAttribute('aria-label', `${restaurant.name} is among your favorites`);
+  } else {
+    star.classList.replace('fas', 'far');
+    star.setAttribute('aria-label', `${restaurant.name} is not among your favorites`);
+  }
 }
 
 /**
@@ -225,8 +242,13 @@ function createReviewHTML(review) {
   const date = document.createElement('span');
   const createdAtDate = new Date(review.createdAt);
   date.classList.add('comment-date');
+  const hours = createdAtDate.getHours();
+  const minutes = createdAtDate.getMinutes();
+  const month = createdAtDate.getMonth();
+  const day = createdAtDate.getDate();
+
   date.innerHTML =
-    `${createdAtDate.getFullYear()}/${createdAtDate.getMonth()}/${createdAtDate.getDate()} at ${createdAtDate.getHours()}:${createdAtDate.getMinutes()}`;
+    `${createdAtDate.getFullYear()}/${month < 10 ? '0' + month : month}/${day < 10 ? '0' + day : day} at ${hours < 10 ? '0' + hours : hours}:${minutes < 10 ? '0' + minutes : minutes}`;
   div.appendChild(date);
 
   if (review.misaligned) {
@@ -236,8 +258,7 @@ function createReviewHTML(review) {
     offlineWarning.classList.add('tooltip');
 
     const warningIcon = document.createElement('span');
-    warningIcon.classList.add('fas');
-    warningIcon.classList.add('exclamation-triangle');
+    warningIcon.classList.add('fas', 'exclamation-triangle');
     warningIcon.setAttribute('aria-label', warningMsg);
     warningIcon.innerHTML = '&#xf071';
     offlineWarning.appendChild(warningIcon);

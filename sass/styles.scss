@@ -139,6 +139,10 @@ select {
   color: #000;
 }
 
+.pointer {
+  cursor: pointer;
+}
+
 /* ====================== Navigation ====================== */
 nav {
   width: 100%;
@@ -518,7 +522,6 @@ nav {
   border-radius: 4px;
   border: 1px solid #ddd;
   background-color: #ffa500;
-  cursor: pointer;
 }
 
 /* ====================== Tooltip style ====================== */

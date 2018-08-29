@@ -1,5 +1,3 @@
-'use strict';
-
 const staticCacheName = 'restaurant-reviews-static-v2';
 const restaurantReviewsImgs = 'restaurant-reviews-imgs-v2';
 const allCaches = [
@@ -15,7 +13,11 @@ self.addEventListener('install', event =>
         'restaurant.html',
         'js/main.js',
         'js/restaurant_info.js',
-        'css/styles.css'
+        'css/styles.css',
+        'fonts/fa-regular-400.woff2',
+        'fonts/fa-solid-900.woff2',
+        'fonts/roboto-v18-latin-700.woff2',
+        'fonts/roboto-v18-latin-regular.woff2',
       ]);
     })
   )
